@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Lista de Facturas{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="fw-bold text-primary fs-3"><i class="fas fa-file-invoice-dollar me-3"></i>Facturas</h1>
+        <a href="{{ url_for('nueva_factura') }}" class="btn btn-success btn-lg shadow-sm px-4 fs-5">
+            <i class="fas fa-plus-circle me-2"></i> Nueva Factura
+        </a>
+    </div>
+
+    {% if facturas %}
+    <div class="row g-4">
+        {% for factura in facturas %}
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card shadow-sm border-0 rounded-3 factura-card" style="height: 320px;">
+                <div
+                    class="card-header bg-gradient-primary text-white d-flex justify-content-between align-items-center rounded-top-3 py-3 px-4">
+                    <h5 class="mb-0 d-flex align-items-center gap-2 fs-5">
+                        <i class="fas fa-file-invoice fa-lg"></i> #{{ factura.numero_factura }}
+                    </h5>
+                    <span class="badge 
+                        {% if factura.estado == 'Pagado' %}bg-success 
+                        {% elif factura.estado == 'Pendiente' %}bg-warning text-dark 
+                        {% else %}bg-danger{% endif %} rounded-pill px-3 py-2 fs-6 shadow-sm">
+                        {{ factura.estado }}
+                    </span>
+                </div>
+                <div class="card-body px-4 py-3 d-flex flex-column justify-content-between fs-5">
+                    <div>
+                        <p class="text-truncate mb-2"><strong>Cliente:</strong> {{ factura.cliente }}</p>
+                        <p class="text-truncate mb-2"><strong>Contrato:</strong> {{ factura.numero_contrato }}</p>
+                        <p class="mb-2"><strong>Fecha:</strong> {{ factura.fecha_emision.strftime('%d-%m-%Y') if factura.fecha_emision else 'Sin fecha' }}</p>
+                    </div>
+                    <div>
+                        <p class="fs-3 fw-bold text-primary mb-0">${{ '%.2f'|format(factura.total) }}</p>
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-top-0 px-4 py-3 d-flex flex-column gap-3">
+                    <div class="d-flex gap-3 justify-content-between">
+                        <a href="{{ url_for('ver_factura', id=factura.id) }}" 
+                           class="btn btn-outline-primary btn-sm flex-fill d-flex justify-content-center align-items-center gap-2 shadow-sm factura-btn fs-5">
+                            <i class="fas fa-eye"></i> Ver
+                        </a>
+                        <a href="{{ url_for('descargar_pdf_factura', id=factura.id) }}" 
+                           class="btn btn-outline-danger btn-sm flex-fill d-flex justify-content-center align-items-center gap-2 shadow-sm factura-btn fs-5">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </a>
+                        {% if factura.estado == 'Pagado' and factura.comprobante_url %}
+                        <a href="{{ url_for('static', filename='comprobantes/' ~ factura.comprobante_url) }}" target="_blank"
+                           class="btn btn-outline-dark btn-sm d-flex align-items-center gap-2 shadow-sm fs-5">
+                            <i class="fas fa-receipt"></i> Comprobante
+                        </a>
+                        {% endif %}
+                    </div>
+
+                    {% if factura.estado == 'Pendiente' %}
+                    <!-- Formulario subir comprobante -->
+                    <form action="{{ url_for('subir_comprobante', id=factura.id) }}" method="POST"
+                        enctype="multipart/form-data" class="d-flex gap-2 align-items-center mt-2">
+                        <input type="file" name="comprobante" accept="image/*,application/pdf" required
+                            class="form-control form-control-sm fs-5" />
+                        <button type="submit" class="btn btn-success btn-sm fs-5">Subir Pago</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Paginación -->
+    <nav aria-label="Navegación de paginación" class="mt-4">
+      <ul class="pagination justify-content-center fs-5">
+        <li class="page-item {% if page == 1 %}disabled{% endif %}">
+          <a class="page-link" href="{{ url_for('ver_facturas', page=page-1) }}" tabindex="-1">Anterior</a>
+        </li>
+        {% for p in range(1, total_pages + 1) %}
+        <li class="page-item {% if p == page %}active{% endif %}">
+          <a class="page-link" href="{{ url_for('ver_facturas', page=p) }}">{{ p }}</a>
+        </li>
+        {% endfor %}
+        <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+          <a class="page-link" href="{{ url_for('ver_facturas', page=page+1) }}">Siguiente</a>
+        </li>
+      </ul>
+    </nav>
+
+    {% else %}
+    <div class="alert alert-warning text-center mt-5 fs-4 d-flex justify-content-center align-items-center gap-3">
+        <i class="fas fa-exclamation-triangle fa-lg"></i> No hay facturas registradas aún.
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    /* Card base style */
+    .factura-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        cursor: default;
+        will-change: transform;
+    }
+
+    /* Hover effect: elevate card */
+    .factura-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 0.75rem 1.5rem rgba(0, 123, 255, 0.25);
+        z-index: 5;
+    }
+
+    /* Button style refinement */
+    .factura-btn {
+        transition: background-color 0.25s ease, color 0.25s ease;
+        font-size: 1rem;
+    }
+
+    .factura-btn:hover {
+        background-color: var(--bs-primary);
+        color: #fff !important;
+    }
+
+    .factura-btn.btn-outline-danger:hover {
+        background-color: #dc3545;
+        color: #fff !important;
+    }
+
+    /* Text truncation */
+    .text-truncate {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
+{% endblock %}

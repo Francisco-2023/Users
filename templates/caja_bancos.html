@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% block title %}🏦 Caja y Bancos{% endblock %}
+
+{% block content %}
+<style>
+  /* Animación fadeIn */
+  #tablaCuentasBancos_wrapper {
+    animation: fadeInUp 0.8s ease forwards;
+  }
+
+  @keyframes fadeInUp {
+    0% {
+      opacity: 0;
+      transform: translateY(15px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .table-responsive {
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgb(0 0 0 / 0.1);
+    background: #fff;
+    padding: 1.25rem;
+  }
+
+  /* Azul más suave para encabezado */
+  thead.table-primary {
+    background-color: #2a6ebb !important;
+  }
+
+  /* Suavizar hover */
+  table#tablaCuentasBancos tbody tr {
+    transition: background-color 0.3s ease, transform 0.2s ease;
+  }
+
+  table#tablaCuentasBancos tbody tr:hover {
+    background-color: #d0e3fc;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgb(42 110 187 / 0.3);
+    cursor: pointer;
+  }
+
+  /* Alineación */
+  th, td {
+    vertical-align: middle !important;
+  }
+
+  th.text-start, td.text-start {
+    text-align: left !important;
+  }
+
+  td.saldo {
+    font-weight: 700;
+    color: #2a6ebb;
+  }
+</style>
+
+<div class="container mt-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-primary fw-bold">🏦 Caja y Bancos</h2>
+    <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevaCuenta">
+      ➕ Nueva Cuenta
+    </button>
+  </div>
+
+  <div class="table-responsive">
+    <table id="tablaCuentasBancos" class="table table-striped align-middle text-center">
+      <thead class="table-primary text-white">
+        <tr>
+          <th><i class="bi bi-bank"></i> Tipo</th>
+          <th class="text-start"><i class="bi bi-journal-text"></i> Nombre de la Cuenta</th>
+          <th><i class="bi bi-currency-dollar"></i> Saldo Actual</th>
+          <th class="text-start"><i class="bi bi-card-text"></i> Descripción</th>
+          <th><i class="bi bi-calendar3"></i> Fecha Creación</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cuenta in cuentas %}
+        <tr>
+          <td>{{ cuenta.tipo }}</td>
+          <td class="text-start">{{ cuenta.nombre_cuenta }}</td>
+          <td class="saldo">$ {{ '%.2f'|format(cuenta.saldo_actual) }}</td>
+          <td class="text-start">{{ cuenta.descripcion or '-' }}</td>
+          <td>{{ cuenta.fecha_creacion | default('') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal para nueva cuenta -->
+<div class="modal fade" id="modalNuevaCuenta" tabindex="-1" aria-labelledby="modalNuevaCuentaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <form method="POST" action="{{ url_for('nueva_cuenta_bancaria') }}">
+      <div class="modal-content shadow">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="modalNuevaCuentaLabel">➕ Nueva Cuenta Bancaria</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Tipo de Cuenta</label>
+            <select name="tipo" class="form-select form-select-lg" required>
+              <option value="" disabled selected>Seleccione tipo</option>
+              <option>Caja</option>
+              <option>Banco</option>
+              <option>Ahorros</option>
+              <option>Corriente</option>
+              <option>Otros</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Nombre de la Cuenta</label>
+            <input type="text" name="nombre_cuenta" class="form-control form-control-lg" required placeholder="Ej: Banco Pichincha - Cuenta Corriente">
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Saldo Actual</label>
+            <input type="number" name="saldo_actual" class="form-control form-control-lg" step="0.01" required value="0">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Descripción</label>
+            <textarea name="descripcion" class="form-control" rows="4" placeholder="Opcional"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary btn-lg shadow-sm">Guardar</button>
+          <button type="button" class="btn btn-outline-secondary btn-lg" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+<!-- Scripts DataTables -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script>
+  $(document).ready(function () {
+    $('#tablaCuentasBancos').DataTable({
+      language: {
+        url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+      },
+      pageLength: 10,
+      responsive: true,
+      lengthChange: false,
+      order: [[4, 'desc']]
+    });
+  });
+</script>
+{% endblock %}

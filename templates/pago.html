@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}Pagos{% endblock %}
+{% block content %}
+
+<div class="container mt-4">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
+        role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('pagar_contrato') }}" method="POST" enctype="multipart/form-data"
+        class="border rounded p-4 bg-white shadow-sm">
+
+        <h4 class="text-primary mb-4"><i class="bi bi-wallet2 me-2"></i>Registrar Pago de Contrato</h4>
+
+        <!-- Contrato -->
+        <div class="mb-4">
+            <label for="contrato_id" class="form-label fw-semibold">Número de Contrato</label>
+            <select class="form-select" id="contrato_id" name="contrato_id" onchange="onContratoChange(this.value)"
+                required>
+                <option value="">Seleccione un contrato</option>
+                {% for contrato in contratos %}
+                <option value="{{ contrato[0] }}" data-nombres="{{ contrato[2] }}" data-apellidos="{{ contrato[3] }}"
+                    data-plan="{{ contrato[4] }}" data-fecha_corte="{{ contrato[5] }}">
+                    {{ contrato[1] }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Datos del cliente -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <label for="nombres" class="form-label fw-semibold">Nombres</label>
+                <input type="text" id="nombres" class="form-control bg-light" readonly>
+            </div>
+            <div class="col-md-6">
+                <label for="apellidos" class="form-label fw-semibold">Apellidos</label>
+                <input type="text" id="apellidos" class="form-control bg-light" readonly>
+            </div>
+        </div>
+
+        <!-- Plan y Fecha -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <label for="plan_internet" class="form-label fw-semibold">Plan de Internet</label>
+                <input type="text" id="plan_internet" class="form-control bg-light" readonly>
+            </div>
+            <div class="col-md-6">
+                <label for="fecha_corte" class="form-label fw-semibold">Fecha de Corte</label>
+                <input type="date" id="fecha_corte" class="form-control bg-light" readonly>
+            </div>
+        </div>
+
+        <!-- Monto -->
+        <div class="mb-4">
+            <label for="monto" class="form-label fw-semibold">Monto a Pagar (USD)</label>
+            <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="text" id="monto" name="monto" class="form-control bg-light" readonly>
+            </div>
+        </div>
+
+        <input type="hidden" name="cliente" id="cliente">
+
+        <!-- Método de pago -->
+        <div class="mb-4">
+            <label for="metodo_pago" class="form-label fw-semibold">Método de Pago</label>
+            <select class="form-select" id="metodo_pago" name="metodo_pago" onchange="onMetodoPagoChange()" required>
+                <option value="">Seleccione un método</option>
+                <option value="Efectivo">Efectivo</option>
+                <option value="Transferencia">Transferencia</option>
+            </select>
+        </div>
+
+        <!-- Comprobante -->
+        <div class="mb-4 d-none" id="comprobante_div">
+            <label for="comprobante" class="form-label fw-semibold">Subir Comprobante de Transferencia</label>
+            <input type="file" class="form-control" id="comprobante" name="comprobante" accept="image/*">
+            <small class="text-muted">Formatos permitidos: JPG, PNG, etc.</small>
+        </div>
+
+        <!-- Botón -->
+        <div class="d-grid">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-cash-coin me-1"></i> Registrar Pago
+            </button>
+        </div>
+    </form>
+
+    <hr class="my-5">
+
+    <h3>Historial de Pagos</h3>
+    <table class="table table-striped table-bordered mt-3">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Cliente</th>
+                <th>Número Contrato</th>
+                <th>Plan</th>
+                <th>Monto (USD)</th>
+                <th>Método</th>
+                <th>Fecha</th>
+                <th>Recibo</th>
+                <th>Estado</th>
+                <th>Pago</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pago in pagos %}
+            <tr>
+                <td>{{ pago[0] }}</td> <!-- ID -->
+                <td>{{ pago[1] }}</td> <!-- Cliente -->
+                <td>{{ pago[9] }}</td> <!-- Número contrato -->
+                <td>{{ pago[7] }}</td> <!-- Plan guardado en el momento del pago -->
+                <td>{{ '%.2f' | format(pago[2]) }}</td> <!-- Monto -->
+                <td>{{ pago[3] }}</td> <!-- Método -->
+                <td>{{ pago[4].strftime('%Y-%m-%d %H:%M:%S') }}</td> <!-- Fecha -->
+                <td>
+                    {% if pago[3] == 'Efectivo' %}
+                    <button class="btn btn-sm btn-outline-primary"
+                        onclick="imprimirRecibo({{ pago[0] }})">Imprimir</button>
+                    {% elif pago[3] == 'Transferencia' and pago[5] %}
+                    <a href="{{ url_for('static', filename='comprobantes/' ~ pago[5]) }}"
+                        class="btn btn-sm btn-outline-success" target="_blank">Ver</a>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>{{ pago[14] }}</td> <!-- Estado -->
+                <td><span class="badge bg-success">Pagado</span></td>
+                <td>
+                    <form action="{{ url_for('eliminar_pago', pago_id=pago[0]) }}" method="POST"
+                        onsubmit="return confirm('¿Estás seguro de que deseas eliminar este recibo?');">
+                        <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+
+            {% endfor %}
+        </tbody>
+
+
+    </table>
+</div>
+
+<script>
+    const PLAN_PRECIOS = {{ plan_precios| tojson }};
+
+    function onContratoChange(contratoId) {
+        if (!contratoId) {
+            document.getElementById('nombres').value = '';
+            document.getElementById('apellidos').value = '';
+            document.getElementById('plan_internet').value = '';
+            document.getElementById('fecha_corte').value = '';
+            document.getElementById('monto').value = '';
+            document.getElementById('cliente').value = '';
+            return;
+        }
+
+        const option = document.querySelector(`#contrato_id option[value="${contratoId}"]`);
+        const nombres = option.getAttribute('data-nombres');
+        const apellidos = option.getAttribute('data-apellidos');
+        const plan = option.getAttribute('data-plan');
+        const fecha_corte = option.getAttribute('data-fecha_corte');
+
+        document.getElementById('nombres').value = nombres;
+        document.getElementById('apellidos').value = apellidos;
+        document.getElementById('plan_internet').value = plan;
+        document.getElementById('fecha_corte').value = fecha_corte;
+
+        if (PLAN_PRECIOS.hasOwnProperty(plan)) {
+            document.getElementById('monto').value = PLAN_PRECIOS[plan];
+        } else {
+            document.getElementById('monto').value = '';
+        }
+
+        // Campo oculto para enviar el nombre completo al backend
+        document.getElementById('cliente').value = nombres + ' ' + apellidos;
+    }
+
+    function onMetodoPagoChange() {
+        const metodo = document.getElementById('metodo_pago').value;
+        const comprobanteDiv = document.getElementById('comprobante_div');
+
+        if (metodo === 'Transferencia') {
+            comprobanteDiv.classList.remove('d-none');
+            document.getElementById('comprobante').setAttribute('required', 'required');
+        } else {
+            comprobanteDiv.classList.add('d-none');
+            document.getElementById('comprobante').removeAttribute('required');
+        }
+    }
+
+    function imprimirRecibo(pagoId) {
+        // Puedes abrir una nueva ventana con la URL para imprimir el recibo
+        // Ejemplo: /recibo/<id>
+        window.open(`/recibo/${pagoId}`, '_blank', 'width=600,height=400');
+    }
+</script>
+
+{% endblock %}

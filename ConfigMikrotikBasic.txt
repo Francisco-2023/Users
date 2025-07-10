@@ -1,0 +1,33 @@
+# Limpia la configuración anterior (opcional, si estás empezando de cero)
+/system reset-configuration no-defaults=yes skip-backup=yes
+
+# Espera que reinicie, luego vuelves a conectar y ejecutas lo siguiente:
+
+# Puerto ether1 como WAN (obtener IP automática)
+/ip dhcp-client add interface=ether1 disabled=no
+
+# Asignar IP local al bridge
+/interface bridge add name=bridge1
+/interface bridge port add interface=ether2 bridge=bridge1
+/interface bridge port add interface=ether3 bridge=bridge1
+/interface bridge port add interface=ether4 bridge=bridge1
+/interface bridge port add interface=ether5 bridge=bridge1
+/ip address add address=192.168.88.1/24 interface=bridge1
+
+# Servidor DHCP para LAN
+/ip pool add name=dhcp_pool ranges=192.168.88.10-192.168.88.254
+/ip dhcp-server add address-pool=dhcp_pool interface=bridge1 name=dhcp1
+/ip dhcp-server network add address=192.168.88.0/24 gateway=192.168.88.1
+/ip dhcp-server enable dhcp1
+
+# NAT para dar salida a internet a la LAN
+/ip firewall nat add chain=srcnat action=masquerade out-interface=ether1
+
+# Habilitar API para conectarte desde Python
+/ip service enable api
+/ip service set api port=8728
+
+# Habilitar acceso Winbox, Web, SSH (opcional)
+/ip service enable winbox
+/ip service enable www
+/ip service enable ssh

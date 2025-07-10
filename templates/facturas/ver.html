@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Factura #{{ factura.numero_factura }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary">🧾 Factura #{{ factura.numero_factura }}</h2>
+        <a href="{{ url_for('ver_facturas') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Volver a lista
+        </a>
+    </div>
+
+    <!-- Información del cliente -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            Información del Cliente
+        </div>
+        <div class="card-body">
+            <p><strong>Contrato:</strong> {{ factura.numero_contrato }}</p>
+            <p><strong>Cliente:</strong> {{ factura.nombres }} {{ factura.apellidos }}</p>
+            <p><strong>Fecha:</strong> {{ factura.fecha_emision.strftime('%Y-%m-%d') if factura.fecha_emision else 'N/A' }}</p>
+            <p><strong>Estado:</strong> 
+                <span class="badge bg-{{ 'success' if factura.estado == 'Pagada' else 'warning' }}">
+                    {{ factura.estado }}
+                </span>
+            </p>
+            {% if factura.notas %}
+                <p><strong>Notas:</strong> {{ factura.notas }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Detalles de productos -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-secondary text-white">
+            Detalles de Productos
+        </div>
+        <div class="card-body table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio Unitario</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in detalles %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ item.descripcion }}</td>
+                        <td>{{ item.cantidad }}</td>
+                        <td>${{ '%.2f'|format(item.precio_unitario) }}</td>
+                        <td>${{ '%.2f'|format(item.subtotal) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" class="text-end"><strong>Subtotal:</strong></td>
+                        <td>${{ '%.2f'|format(factura.subtotal) }}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" class="text-end"><strong>Impuestos:</strong></td>
+                        <td>${{ '%.2f'|format(factura.impuestos) }}</td>
+                    </tr>
+                    <tr class="table-success">
+                        <td colspan="4" class="text-end"><strong>Total:</strong></td>
+                        <td><strong>${{ '%.2f'|format(factura.total) }}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

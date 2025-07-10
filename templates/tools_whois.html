@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Consulta WHOIS{% endblock %}
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4 text-center"><i class="bi bi-card-list me-2"></i>Consulta WHOIS</h2>
+
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card shadow-sm border-primary">
+        <div class="card-body">
+          <div class="input-group mb-3">
+            <input type="text" id="whois-domain" class="form-control" placeholder="Ingresa dominio (ej. ejemplo.com)" aria-label="Dominio" autocomplete="off">
+            <button class="btn btn-primary" type="button" onclick="runWhois()">
+              <i class="bi bi-search"></i> Consultar
+            </button>
+          </div>
+          <div id="whois-result" class="mt-4" style="white-space: pre-wrap; max-height: 450px; overflow-y: auto; font-family: monospace; background: #f8f9fa; padding: 15px; border-radius: 5px; box-shadow: inset 0 0 5px #ddd;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function runWhois() {
+  const domain = document.getElementById('whois-domain').value.trim();
+  const resultDiv = document.getElementById('whois-result');
+
+  if (!domain) {
+    resultDiv.innerHTML = `
+      <div class="alert alert-warning d-flex align-items-center" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        Por favor ingresa un dominio válido.
+      </div>`;
+    return;
+  }
+
+  resultDiv.innerHTML = `
+    <div class="text-center my-4">
+      <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+      <div class="mt-2">Consultando...</div>
+    </div>`;
+
+  try {
+    const res = await fetch('/tools/whois', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({domain})
+    });
+    const data = await res.json();
+
+    if(data.error) {
+      resultDiv.innerHTML = `
+        <div class="alert alert-danger d-flex align-items-center" role="alert">
+          <i class="bi bi-x-circle-fill me-2"></i>
+          ${data.error}
+        </div>`;
+    } else {
+      // Mostrar la info formateada, clave: valor
+      let output = '';
+      for (const [key, val] of Object.entries(data)) {
+        output += `${key.padEnd(20)}: ${val}\n`;
+      }
+      resultDiv.textContent = output;
+    }
+  } catch (e) {
+    resultDiv.innerHTML = `
+      <div class="alert alert-danger d-flex align-items-center" role="alert">
+        <i class="bi bi-x-octagon-fill me-2"></i>
+        Error inesperado: ${e.message}
+      </div>`;
+  }
+}
+</script>
+
+<!-- Bootstrap Icons CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Monitoreo del Hotspot{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h2 class="mb-4 text-center">Monitoreo del Hotspot</h2>
+        <!-- Botón de acción destacado -->
+        <div class="text-end mb-4">
+            <a href="{{ url_for('hotspot') }}" class="btn btn-hotspot">Hotspot</a>
+        </div>
+        <!-- Tarjetas dinámicas -->
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            {% for host in hosts %}
+            <div class="col">
+                <div class="card">
+                    <div class="card-body">
+                        <!-- Título del dispositivo -->
+                        <h5 class="card-title text-primary mb-3">
+                            <i class="bi bi-laptop"></i> {{ host.get('host-name', 'Hostname no disponible') }}
+                        </h5>
+                        <!-- Información detallada -->
+                        <p class="card-text"><strong>Dirección:</strong> {{ host.get('address', 'N/A') }}</p>
+                        <p class="card-text"><strong>MAC Address:</strong> {{ host.get('mac-address', 'N/A') }}</p>
+                        <p class="card-text"><strong>Usuario:</strong> {{ host.get('user', 'N/A') }}</p>
+                        <p class="card-text"><strong>Tiempo de Sesión Restante:</strong> {{ host.get('session-time-left', 'N/A') }}</p>
+                        <!-- Separador -->
+                        <div class="card-divider"></div>
+                        <!-- Estado -->
+                        <p class="card-text">
+                            <strong>Estado:</strong>
+                            <span class="{% if host['status'] == 'online' %}status-online{% else %}status-offline{% endif %}">
+                                {% if host['status'] == 'online' %}
+                                <i class="bi bi-check-circle-fill"></i>
+                                {% else %}
+                                <i class="bi bi-x-circle-fill"></i>
+                                {% endif %}
+                                {{ host['status'] | capitalize }}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <script>
+        function updateHosts() {
+            fetch('/hotspot_monitoring')
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newCards = doc.querySelector('.row').innerHTML;
+                    document.querySelector('.row').innerHTML = newCards;
+                })
+                .catch(error => console.error('Error al actualizar los datos:', error));
+        }
+
+        // Actualizar cada 5 segundos
+        setInterval(updateHosts, 1000);
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.js"></script>
+{% endblock %}

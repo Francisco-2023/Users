@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Clientes{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary"><i class="bi bi-people-fill me-2"></i>Clientes Registrados</h2>
+    </div>
+
+    <!-- Buscador -->
+    <div class="input-group mb-3">
+        <span class="input-group-text bg-light"><i class="bi bi-search text-secondary"></i></span>
+        <input type="text" id="buscador" class="form-control" placeholder="Buscar por nombre, cédula, email, teléfono...">
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-responsive" style="max-height: 65vh; overflow-y: auto;">
+        <table class="table table-hover align-middle table-bordered" id="tabla-clientes">
+            <thead class="table-primary text-center sticky-top" style="top: 0; z-index: 1;">
+                <tr>
+                    <th>#</th>
+                    <th>Contrato</th>
+                    <th>Nombre</th>
+                    <th>Cédula</th>
+                    <th>Email</th>
+                    <th>Teléfono</th>
+                    <th>Estado</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for contrato in contratos %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ contrato.numero_contrato }}</td>
+                    <td>{{ contrato.nombres }} {{ contrato.apellidos }}</td>
+                    <td>{{ contrato.cedula }}</td>
+                    <td>{{ contrato.email }}</td>
+                    <td>{{ contrato.telefono }}</td>
+                    <td class="text-center">
+                        {% if contrato.estado == 'Activo' %}
+                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>{{ contrato.estado }}</span>
+                        {% elif contrato.estado == 'Cortado' %}
+                            <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>{{ contrato.estado }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary"><i class="bi bi-dash-circle me-1"></i>{{ contrato.estado }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <a href="{{ url_for('ver_contrato', id=contrato.id) }}" class="btn btn-outline-info btn-sm">
+                            <i class="bi bi-eye-fill"></i> Ver
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Buscador en tiempo real -->
+<script>
+    document.getElementById('buscador').addEventListener('keyup', function () {
+        const filtro = this.value.toLowerCase();
+        const filas = document.querySelectorAll("#tabla-clientes tbody tr");
+
+        filas.forEach(fila => {
+            const texto = fila.textContent.toLowerCase();
+            fila.style.display = texto.includes(filtro) ? "" : "none";
+        });
+    });
+</script>
+{% endblock %}

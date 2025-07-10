@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Ping{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Ping</h2>
+    <form method="post" action="{{ url_for('tool_ping') }}">
+        <input type="text" name="host" class="form-control mb-2" placeholder="Ingrese IP o dominio" required>
+        <button type="submit" class="btn btn-primary">Ejecutar</button>
+    </form>
+    {% if resultado %}
+    <pre class="mt-3">{{ resultado }}</pre>
+    {% endif %}
+</div>
+{% endblock %}

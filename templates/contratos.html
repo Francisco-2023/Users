@@ -1,0 +1,446 @@
+{% extends "base.html" %}
+
+{% block title %}Contrato - WISP{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4 p-4 bg-white rounded-3 shadow-lg">
+    <div class="row align-items-center mb-4 pb-3 border-bottom">
+        <div class="col-md-6">
+            <h3 class="text-primary mb-0 d-flex align-items-center">
+                <i class="bi bi-briefcase-fill me-2 fs-4"></i> Gestión de Contratos
+            </h3>
+        </div>
+        <div class="col-md-6 text-end">
+            <button class="btn btn-success btn-lg shadow-sm-4" data-bs-toggle="modal"
+                data-bs-target="#nuevoContratoModal">
+                <i class="bi bi-plus-circle me-2"></i> Nuevo Contrato
+            </button>
+        </div>
+    </div>
+
+    <div class="row align-items-end mb-4 g-3">
+        <div class="col-md-3 col-sm-6">
+            <label for="filterPlan" class="form-label fw-semibold text-muted d-flex align-items-center">
+                <i class="bi bi-wifi me-2"></i> Filtrar por Plan:
+            </label>
+            <select id="filterPlan" class="form-select form-select-sm shadow-sm">
+                <option value="">Todos</option>
+                <option>3 Mbps</option>
+                <option>5 Mbps</option>
+                <option>10 Mbps</option>
+                <option>15 Mbps</option>
+                <option>20 Mbps</option>
+                <option>25 Mbps</option>
+                <option>30 Mbps</option>
+            </select>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <label for="filterProvincia" class="form-label fw-semibold text-muted d-flex align-items-center">
+                <i class="bi bi-globe-americas me-2"></i> Filtrar por Provincia:
+            </label>
+            <select id="filterProvincia" class="form-select form-select-sm shadow-sm">
+                <option value="">Todas</option>
+                {% for provincia in provincias_list %}
+                <option>{{ provincia }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6 d-flex justify-content-end align-items-end" id="tableButtons">
+        </div>
+    </div>
+
+    {% if contratos %}
+    <div class="table-responsive shadow-sm rounded-3 border">
+        <table id="tablaContratos" class="table table-striped table-hover table-bordered caption-top">
+            <caption class="fw-bold text-primary mb-2 ps-2">Lista de Contratos Registrados</caption>
+            <thead class="table-dark">
+                <tr>
+                    <th class="text-nowrap">Contrato</th>
+                    <th class="text-nowrap">Nombres</th>
+                    <th class="text-nowrap">Apellidos</th>
+                    <th class="text-nowrap">Cédula</th>
+                    <th class="text-nowrap">Teléfono</th>
+                    <th class="text-nowrap">País</th>
+                    <th class="text-nowrap">Provincia</th>
+                    <th class="text-nowrap">Cantón</th>
+                    <th class="text-nowrap">Dirección</th>
+                    <th class="text-nowrap">Plan</th>
+                    <th class="text-nowrap">IP</th>
+                    <th class="text-nowrap">Estado</th>
+                    <th class="text-nowrap">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in contratos %}
+                <tr>
+                    <td>{{ c.numero_contrato }}</td>
+                    <td>{{ c.nombres }}</td>
+                    <td>{{ c.apellidos }}</td>
+                    <td>{{ c.cedula }}</td>
+                    <td>{{ c.telefono }}</td>
+                    <td>{{ c.pais }}</td>
+                    <td>{{ c.provincia }}</td>
+                    <td>{{ c.canton }}</td>
+                    <td>{{ c.direccion }}</td>
+                    <td>{{ c.plan_internet }}</td>
+                    <td>{{ c.ip_asignada }}</td>
+                    <td>
+                        {% if c.estado == 'Cortado' %}
+                        <span class="badge bg-danger text-uppercase py-2 px-3 rounded-pill fw-bold">Cortado</span>
+                        {% else %}
+                        <span class="badge bg-success text-uppercase py-2 px-3 rounded-pill fw-bold">Activo</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-nowrap">
+                        <!-- Editar -->
+                        <a href="/contratos/editar/{{ c.id }}" class="btn btn-warning btn-sm me-1"
+                            data-bs-toggle="tooltip" data-bs-placement="top" title="Editar Contrato">
+                            <i class="bi bi-pencil-square"></i>
+                        </a>
+
+                        <!-- Cortar / Reconectar -->
+                        <form action="/contratos/toggle_estado/{{ c.id }}" method="POST" class="d-inline-block me-1">
+                            <button type="submit"
+                                class="btn btn-sm {{ 'btn-danger' if c.estado == 'Activo' else 'btn-success' }}"
+                                data-bs-toggle="tooltip" data-bs-placement="top"
+                                title="{{ 'Cortar Servicio' if c.estado == 'Activo' else 'Reconectar Servicio' }}">
+                                <i class="bi {{ 'bi-x-circle' if c.estado == 'Activo' else 'bi-arrow-clockwise' }}"></i>
+                            </button>
+                        </form>
+
+                        <!-- Suspender -->
+                        <form action="/contratos/suspender/{{ c.id }}" method="POST" class="d-inline-block me-1">
+                            <button type="submit" class="btn btn-warning btn-sm" data-bs-toggle="tooltip"
+                                data-bs-placement="top" title="Suspender Contrato">
+                                <i class="bi bi-pause-circle"></i>
+                            </button>
+                        </form>
+
+                        <!-- Eliminar -->
+                        <form action="/contratos/eliminar/{{ c.id }}" method="POST" class="d-inline-block">
+                            <button type="submit" class="btn btn-danger btn-sm"
+                                onclick="return confirm('¿Estás seguro de eliminar este contrato? Esta acción es irreversible.')"
+                                data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar Contrato">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center my-4 py-3" role="alert">
+        <i class="bi bi-info-circle me-2"></i> No hay contratos registrados. ¡Crea el primero para empezar!
+    </div>
+    {% endif %}
+
+    <div class="modal fade" id="nuevoContratoModal" tabindex="-1" aria-labelledby="nuevoContratoLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content rounded-4 shadow-lg">
+                <form action="/contratos/crear" method="POST" enctype="multipart/form-data">
+                    <div class="modal-header bg-primary text-white rounded-top-4 py-3">
+                        <h5 class="modal-title" id="nuevoContratoLabel">
+                            <i class="bi bi-file-earmark-plus me-2"></i> Nuevo Contrato
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Número de Contrato</label>
+                                <input type="text" name="numero_contrato" class="form-control"
+                                    value="{{ numero_contrato }}" readonly required />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Nombres</label>
+                                <input type="text" name="nombres" class="form-control" placeholder="Ej: Juan"
+                                    required />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Apellidos</label>
+                                <input type="text" name="apellidos" class="form-control" placeholder="Ej: Pérez"
+                                    required />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Cédula</label>
+                                <input type="text" name="cedula" class="form-control" placeholder="Ej: 0987654321"
+                                    required />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Teléfono</label>
+                                <input type="text" name="telefono" class="form-control" placeholder="Ej: 0991234567"
+                                    required />
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold">Dirección</label>
+                                <input type="text" name="direccion" class="form-control"
+                                    placeholder="Ej: Av. Principal y Calle Secundaria" required />
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold">Email <span
+                                        class="text-muted">(Opcional)</span></label>
+                                <input type="email" name="email" class="form-control"
+                                    placeholder="Ej: correo@ejemplo.com" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">País</label>
+                                <select name="pais" class="form-select" required>
+                                    <option value="Ecuador" selected>Ecuador</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Provincia</label>
+                                <select name="provincia" class="form-select" required>
+                                    <option value="">Seleccione Provincia</option>
+                                    <!-- Opciones llenadas dinámicamente -->
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Cantón</label>
+                                <select name="canton" class="form-select" required>
+                                    <option value="">Seleccione Cantón</option>
+                                    <!-- Opciones llenadas dinámicamente -->
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Latitud</label>
+                                <input type="text" name="latitud" class="form-control" placeholder="Ej: -1.234567"
+                                    required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Longitud</label>
+                                <input type="text" name="longitud" class="form-control" placeholder="Ej: -78.910112"
+                                    required />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Plan de Internet</label>
+                                <select name="plan_internet" class="form-select" required>
+                                    <option value="1 Mbps">1 Mbps</option>
+                                    <option value="5 Mbps">5 Mbps</option>
+                                    <option value="10 Mbps">10 Mbps</option>
+                                    <option value="15 Mbps">15 Mbps</option>
+                                    <option value="20 Mbps">20 Mbps</option>
+                                    <option value="25 Mbps">25 Mbps</option>
+                                    <option value="30 Mbps">30 Mbps</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">IP Asignada</label>
+                                <input type="text" name="ip_asignada" class="form-control" value="{{ ip_disponible }}"
+                                    readonly required />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Máscara</label>
+                                <input type="text" name="mascara" class="form-control" value="255.255.255.0" readonly
+                                    required />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Gateway</label>
+                                <input type="text" name="gateway" class="form-control" value="192.168.69.1" readonly
+                                    required />
+                            </div>
+                            <!-- Nueva sección para imagen -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Imagen del domicilio</label>
+                                <input type="file" name="imagen_domicilio" accept="image/*" class="form-control" />
+                            </div>
+                            <!-- Campos de fechas -->
+                            <!-- 
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Fecha de corte</label>
+                                <input type="date" name="fecha_corte" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Fecha de inicio</label>
+                                <input type="date" name="fecha_inicio" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Fecha de finalización</label>
+                                <input type="date" name="fecha_fin" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Fecha de suspensión</label>
+                                <input type="date" name="fecha_suspension" class="form-control" />
+                            </div>
+                            -->
+                        </div>
+                    </div>
+                    <div class="modal-footer p-3 border-top">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle me-1"></i> Cerrar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i> Guardar contrato
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            // Inicializar tooltips de Bootstrap
+            const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+            const table = $('#tablaContratos').DataTable({
+                dom:
+                    '<"card shadow-sm p-3 border-0 mb-4"' + // Card envolvente
+                    '<"row align-items-center mb-3"' +
+                    '<"col-md-4 col-12"l>' + // Mostrar _ contratos
+                    '<"col-md-4 col-12"f>' + // Buscador
+                    '<"col-md-4 col-12 text-end mt-2 mt-md-0"B>' + // Botones exportación
+                    '>' +
+                    '<"table-responsive"t>' + // Tabla
+                    '<"row align-items-center mt-3"' +
+                    '<"col-md-6 col-sm-12 text-muted"i>' + // Info
+                    '<"col-md-6 col-sm-12 text-end"p>' + // Paginación
+                    '>' +
+                    '>',
+
+                buttons: [
+                    {
+                        extend: 'excelHtml5',
+                        className: 'btn btn-success btn-sm rounded-pill',
+                        text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                        exportOptions: { columns: ':not(:last-child)' }
+                    },
+                    {
+                        extend: 'pdfHtml5',
+                        className: 'btn btn-danger btn-sm rounded-pill',
+                        text: '<i class="bi bi-file-earmark-pdf me-1"></i> PDF',
+                        exportOptions: { columns: ':not(:last-child)' }
+                    },
+                    {
+                        extend: 'print',
+                        className: 'btn btn-primary btn-sm rounded-pill',
+                        text: '<i class="bi bi-printer me-1"></i> Imprimir',
+                        exportOptions: { columns: ':not(:last-child)' }
+                    }
+                ],
+
+                language: {
+                    search: "",
+                    searchPlaceholder: "Buscar contrato...",
+                    lengthMenu: "Mostrar _MENU_ contratos",
+                    info: "Mostrando _START_ a _END_ de _TOTAL_ contratos",
+                    paginate: {
+                        first: "Primero",
+                        last: "Último",
+                        next: "Siguiente",
+                        previous: "Anterior"
+                    },
+                    zeroRecords: "No se encontraron contratos",
+                    infoEmpty: "Mostrando 0 a 0 de 0 contratos",
+                    infoFiltered: "(filtrado de _MAX_ contratos totales)"
+                },
+
+                responsive: true,
+                pageLength: 10,
+                lengthMenu: [5, 10, 25, 50],
+                order: [[0, 'desc']]
+            });
+
+
+            // Filtro por plan (columna 9)
+            $('#filterPlan').on('change', function () {
+                table.column(9).search(this.value).draw();
+            });
+
+            // Filtro por provincia (columna 6)
+            $('#filterProvincia').on('change', function () {
+                table.column(6).search(this.value).draw();
+            });
+
+            // Embellecer el buscador
+            const searchInput = $('#tablaContratos_filter input');
+            searchInput
+                .addClass('form-control form-control-sm rounded-pill ps-5 shadow-sm border')
+                .wrap('<div class="position-relative"></div>')
+                .before('<i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ps-3 text-muted"></i>');
+        });
+
+
+
+
+        // Código para cargar provincias y cantones en el modal (opcional)
+        const provincias = {
+            "AZUAY": ["CUENCA", "GIRÓN", "GUALACEO", "NABÓN", "PAUTE", "PUCARA", "SAN FERNANDO", "SANTA ISABEL", "SIGSIG", "OÑA", "CHORDELEG", "EL PAN", "SEVILLA DE ORO", "GUACHAPALA", "CAMILO PONCE ENRÍQUEZ"],
+            "BOLÍVAR": ["GUARANDA", "CHILLANES", "CHIMBO", "ECHEANDIA", "SAN MIGUEL", "CALUMA", "LAS NAVES"],
+            "CAÑAR": ["AZOGUES", "BIBLIÁN", "CAÑAR", "LA TRONCAL", "EL TAMBO", "DELEG", "SUSCAL"],
+            "CARCHI": ["TULCÁN", "BOLÍVAR", "ESPEJO", "MIRA", "MONTÚFAR", "SAN PEDRO DE HUACA"],
+            "COTOPAXI": ["LATACUNGA", "LA MANÁ", "PANGUA", "PUJILÍ", "SALCEDO", "SAQUISILÍ", "SIGCHOS", "RIAUORAMBA"],
+            "CHIMBORAZO": ["RIOBAMBA", "ALAUSÍ", "COLTA", "CHAMBO", "CHUNCHI", "GUAMOTE", "GUANO", "PALLATANGA", "PENIPE", "CUMANDÁ"],
+            "EL ORO": ["MACHALA", "ARENILLAS", "ATAHUALPA", "BALSAS", "CHILLA", "EL GUABO", "HUAQUILLAS", "MARCABELI", "PASAJE", "PIÑAS", "PORTOVELO", "SANTA ROSA", "ZARUMA", "LAS LAJAS"],
+            "ESMERALDAS": ["ESMERALDAS", "ELOY ALFARO", "MUISNE", "QUININDÉ", "SAN LORENZO", "ATACAMES", "RIOVERDE"],
+            "GUAYAS": ["GUAYAQUIL", "ALFREDO BAQUERIZO MORENO", "BALAO", "BALZAR", "COLIMES", "DAULE", "DURÁN", "EMPALME", "EL TRIUNFO", "MILAGRO", "NARANJAL", "NARANJITO", "PALESTINA", "PEDRO CARBO", "SAMBORONDÓN", "SANTA LUCÍA", "SALITRE"],
+            "IMBABURA": ["IBARRA", "ANTONIO ANTE", "COTACACHI", "OTAVALO", "PIMAMPIRO", "SAN MIGUEL DE URCUQUÍ"],
+            "LOJA": ["LOJA", "CALVAS", "CATAMAYO", "CELICA", "CHAGUARPAMBA", "ESPÍNDOLA", "GONZANAMÁ", "MACARÁ", "PALTAS", "PUYANGO", "SARAGURO", "SOZORANGA", "ZAPOTILLO", "PINDAL", "QUILANGA", "OLMEDO"],
+            "LOS RÍOS": ["BABAHOYO", "BABA", "MONTALVO", "PUEBLOVIEJO", "QUEVEDO", "URDANETA", "VENTANAS", "VINCES", "PALENQUE", "BUENA FÉ", "QUINSALOMA"],
+            "MANABÍ": ["PORTOVIEJO", "BOLÍVAR", "CHONE", "EL CARMEN", "FLAVIO ALFARO", "JIPIJAPA", "JUNÍN", "MANTA", "MONTECRISTI", "PAJÁN", "PEDERNALES", "OLMEDO", "PUERTO LÓPEZ", "JAMA", "JARAMIJÓ", "SAN VICENTE"],
+            "MORONA SANTIAGO": ["MORONA", "GUALAQUIZA", "LIMÓN INDANZA", "PALORA", "SANTIAGO", "SUCUA", "HUAMBOYA", "SAN JUAN BOSCO", "TAISHA", "LOGROÑO", "PABLO SEXTO", "TAISLEO"],
+            "NAPO": ["TENA", "ARCHIDONA", "EL CHACO", "QUIJOS", "CARLOS JULIO AROSEMENA TOLA"],
+            "PASTAZA": ["PASTAZA", "MERA", "SANTA CLARA", "ARAJUNO"],
+            "PICHINCHA": ["QUITO", "CAYAMBE", "MEJÍA", "PEDRO MONCAYO", "RUMINAHUI", "SAN MIGUEL DE LOS BANCOS", "PEDRO VICENTE MALDONADO", "PUERTO QUITO"],
+            "TUNGURAHUA": ["AMBATO", "BAÑOS DE AGUA SANTA", "CEVALLOS", "MOCHA", "PATATE", "QUERO", "SAN PEDRO DE PELILEO", "SANTIAGO DE PILLARO", "TISALEO"],
+            "ZAMORA CHINCHIPE": ["ZAMORA", "CHINCHIPE", "NANGARITZA", "YACUAMBI", "YANTZAZA", "EL PANGUI", "CENTINELA DEL CONDOR", "PALANDA", "PAQUISHA"],
+            "GALÁPAGOS": ["SAN CRISTÓBAL", "ISABELA", "SANTA CRUZ"],
+            "SUCUMBÍOS": ["LAGO AGRIO", "GONZALO PIZARRO", "PUTUMAYO", "SHUSHUFINDI", "SUCUMBÍOS", "CASCALLES", "CUYABENO"],
+            "ORELLANA": ["ORELLANA", "AGUARICO", "LA JOYA DE LOS SACHAS", "LORETO"],
+            "SANTO DOMINGO DE LOS TSÁCHILAS": ["SANTO DOMINGO", "LA CONCORDIA"],
+            "SANTA ELENA": ["SANTA ELENA", "LA LIBERTAD", "SALINAS"],
+            "ZONA NO DELIMITADA": ["LAS GOLONDRINAS", "MANGA DEL CURA", "EL PIEDRERO"]
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const provinciaSelect = document.querySelector('select[name="provincia"]');
+            const cantonSelect = document.querySelector('select[name="canton"]');
+
+            // Cargar provincias en el modal
+            Object.keys(provincias).forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                opt.textContent = p;
+                provinciaSelect.appendChild(opt);
+            });
+
+            // Actualizar cantones cuando cambia provincia
+            provinciaSelect.addEventListener('change', () => {
+                const lista = provincias[provinciaSelect.value] || [];
+                cantonSelect.innerHTML = '<option value="">Seleccione Cantón</option>';
+                lista.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c;
+                    opt.textContent = c;
+                    cantonSelect.appendChild(opt);
+                });
+            });
+
+
+        });
+    </script>
+
+    {% endblock %}

@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% block title %}Reporte Técnico #{{ reporte[0] }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+  <h1 class="mb-4 text-primary">Reporte Técnico #{{ reporte[0] }}</h1>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      <div class="row">
+        <!-- Columna Izquierda: Información -->
+        <div class="col-lg-7 col-md-12">
+
+          <!-- Información General -->
+          <section class="mb-4">
+            <h4 class="mb-3 border-bottom pb-2 text-secondary d-flex align-items-center gap-2">
+              <!-- Icono documento -->
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                class="bi bi-journal-text" viewBox="0 0 16 16">
+                <path d="M5 10.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/>
+                <path d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2z"/>
+              </svg>
+              Información General
+            </h4>
+            <table class="table table-borderless">
+              <tbody>
+                <tr><th style="width:180px;">ID Ticket</th><td>{{ reporte[1] }}</td></tr>
+                <tr><th>Fecha del Reporte</th><td>{{ reporte[7].strftime('%Y-%m-%d %H:%M:%S') }}</td></tr>
+                <tr><th>Usuario Responsable</th><td><span class="badge bg-info text-dark">{{ reporte[8] }}</span></td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <!-- Descripción y Materiales -->
+          <section class="mb-4">
+            <h4 class="mb-3 border-bottom pb-2 text-secondary d-flex align-items-center gap-2">
+              <!-- Icono lápiz -->
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                class="bi bi-pencil-square" viewBox="0 0 16 16">
+                <path d="M15.502 1.94a.5.5 0 0 1 0 .706l-1 1a.5.5 0 0 1-.708 0L13 2.207l1-1a.5.5 0 0 1 .707 0l.795.733zm-1.75 2.456L6.854 11.29a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.897-6.897-1.414-1.414z"/>
+                <path fill-rule="evenodd" d="M1 13.5a.5.5 0 0 1 .5-.5H2v-1a2 2 0 0 1 2-2h7a.5.5 0 0 1 0 1H4a1 1 0 0 0-1 1v1h-.5a.5.5 0 0 1-.5-.5z"/>
+              </svg>
+              Descripción y Materiales
+            </h4>
+            <div class="mb-3">
+              <h6 class="fw-semibold">Descripción</h6>
+              <p class="fs-6">{{ reporte[2] }}</p>
+            </div>
+            <div>
+              <h6 class="fw-semibold">Materiales Usados</h6>
+              <p class="fs-6">{{ reporte[3] }}</p>
+            </div>
+          </section>
+
+          <!-- Equipo Utilizado -->
+          <section class="mb-4">
+            <h4 class="mb-3 border-bottom pb-2 text-secondary d-flex align-items-center gap-2">
+              <!-- Icono herramienta -->
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                class="bi bi-tools" viewBox="0 0 16 16">
+                <path d="M1 0 0 1l2.5 2.5-1.5 1.5 1 1 1.5-1.5L6 5l-.5-2.5L1 0zM5 2l1 1-1.5 1.5L2 2.5 5 2z"/>
+                <path fill-rule="evenodd" d="M15.9 13.14a.5.5 0 0 1-.7.7L12.46 11l1.6-1.6a.5.5 0 0 1 .7.7l-1.4 1.4 2.6 2.6zm-1.35-2.88a.5.5 0 0 1-.7 0l-3.46-3.46-1.21 1.2-1.08-1.08 1.22-1.21-3.46-3.46a.5.5 0 1 1 .7-.7l3.46 3.46 1.21-1.22 1.08 1.08-1.21 1.21 3.46 3.46a.5.5 0 0 1 0 .7z"/>
+              </svg>
+              Equipo Utilizado
+            </h4>
+            <table class="table table-striped">
+              <tbody>
+                <tr><th style="width: 180px;">Nombre</th><td>{{ reporte[11] }}</td></tr>
+                <tr><th>Marca / Modelo</th><td>{{ reporte[12] }} - {{ reporte[13] }}</td></tr>
+                <tr><th>Número de Serie</th><td>{{ reporte[9] or 'N/A' }}</td></tr>
+                <tr><th>Dirección MAC</th><td>{{ reporte[10] or 'N/A' }}</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <!-- Ubicación -->
+          <section class="mb-4">
+            <h4 class="mb-3 border-bottom pb-2 text-secondary d-flex align-items-center gap-2">
+              <!-- Icono geo -->
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                class="bi bi-geo-alt" viewBox="0 0 16 16">
+                <path d="M12.166 8.94a5.5 5.5 0 1 0-8.332 0L8 15l4.166-6.06zM8 1a4.5 4.5 0 0 1 4.5 4.5c0 1.651-1.31 3.847-3.03 5.936L8 13l-1.47-1.564C4.81 9.847 3.5 7.651 3.5 6A4.5 4.5 0 0 1 8 1z"/>
+                <path d="M8 8a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>
+              </svg>
+              Ubicación Geográfica
+            </h4>
+
+            <div class="d-flex align-items-center gap-3 fs-6">
+              <a href="https://www.google.com/maps/search/?api=1&query={{ reporte[4] }},{{ reporte[5] }}"
+                 target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
+                <!-- Icono "Ir" -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                  class="bi bi-arrow-right-circle" viewBox="0 0 16 16">
+                  <path fill-rule="evenodd"
+                    d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14zm.5-7.5a.5.5 0 0 1 0 1H5.707l1.147 1.146a.5.5 0 0 1-.708.708l-2-2a.5.5 0 0 1 0-.708l2-2a.5.5 0 1 1 .708.708L5.707 7.5H8.5z" />
+                </svg>
+                Ir
+              </a>
+              <span>Latitud: <strong>{{ reporte[4] }}</strong></span>
+              <span>Longitud: <strong>{{ reporte[5] }}</strong></span>
+              <a href="https://www.google.com/maps/search/?api=1&query={{ reporte[4] }},{{ reporte[5] }}"
+                 target="_blank" rel="noopener noreferrer" class="btn btn-outline-success btn-sm d-flex align-items-center gap-1">
+                <!-- Icono "Vista" -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                  class="bi bi-binoculars" viewBox="0 0 16 16">
+                  <path d="M3 2.5a.5.5 0 0 1 .5-.5H4v1h-.5a.5.5 0 0 1-.5-.5zm9 0a.5.5 0 0 1 .5-.5H13v1h-.5a.5.5 0 0 1-.5-.5z" />
+                  <path
+                    d="M11 3v4h1v6h-1v1h-1v-1H6v1H5v-1H4v-6h1V3H4v-.5A.5.5 0 0 1 4.5 2h7a.5.5 0 0 1 .5.5V3h-1zM5 4h6v3H5V4z" />
+                </svg>
+                Vista
+              </a>
+            </div>
+          </section>
+
+        </div>
+
+        <!-- Columna Derecha: Imagen -->
+        <div class="col-lg-5 col-md-12 d-flex justify-content-center align-items-start">
+          {% if reporte[6] %}
+          <div class="text-center">
+            <h4 class="mb-3 text-secondary d-flex align-items-center gap-2 justify-content-center">
+              <!-- Icono cámara -->
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                class="bi bi-camera" viewBox="0 0 16 16">
+                <path
+                  d="M9.5 2a.5.5 0 0 1 .5.5V3h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h2v-.5a.5.5 0 0 1 .5-.5h2zM8 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" />
+                <path d="M8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z" />
+              </svg>
+              Foto Adjunta
+            </h4>
+            <img src="{{ url_for('static', filename='uploads/' ~ reporte[6]) }}"
+              alt="Foto del reporte técnico"
+              class="img-fluid rounded shadow-sm border"
+              style="max-height: 500px; object-fit: contain;">
+          </div>
+          {% else %}
+          <div class="text-muted fst-italic">No hay foto adjunta para este reporte.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-center mt-4">
+    <a href="{{ url_for('ticket') }}" class="btn btn-outline-secondary px-4">
+      ← Volver a la lista de Tickets
+    </a>
+  </div>
+</div>
+{% endblock %}

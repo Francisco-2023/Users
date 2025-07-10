@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <title>Recibo de Pago #{{ pago[0] }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { text-align: center; }
+        .info { margin-bottom: 20px; }
+        .info strong { display: inline-block; width: 150px; }
+        .footer { margin-top: 30px; font-size: 0.9rem; color: gray; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Recibo de Pago</h1>
+    <div class="info">
+        <p><strong>ID Pago:</strong> {{ pago[0] }}</p>
+        <p><strong>Cliente:</strong> {{ pago[1] }}</p>
+        <p><strong>Monto:</strong> ${{ pago[2] }}</p>
+        <p><strong>Método de Pago:</strong> {{ pago[3] }}</p>
+        <p><strong>Fecha:</strong> {{ pago[4].strftime('%Y-%m-%d %H:%M:%S') }}</p>
+        <p><strong>Número Contrato:</strong> {{ pago[5] }}</p>
+        <p><strong>Plan Internet:</strong> {{ pago[6] }}</p>
+        <p><strong>Próximo Corte:</strong> {{ pago[7] }}</p>
+    </div>
+    <div class="footer">
+        Gracias por su pago.<br>
+        Este recibo certifica que el pago ha sido registrado.
+    </div>
+    <script>
+        window.print();
+    </script>
+</body>
+</html>

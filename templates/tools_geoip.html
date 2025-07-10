@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}GeoIP{% endblock %}
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4 text-center">🔍 Consulta GeoIP</h2>
+
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="input-group mb-3">
+            <input type="text" id="geoip-ip" class="form-control" placeholder="Ingresa IP pública" aria-label="IP pública">
+            <button class="btn btn-primary" type="button" onclick="runGeoIP()">Consultar</button>
+          </div>
+          <div id="geoip-result" class="mt-4"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function formatResult(data) {
+  if(data.error) {
+    return `<div class="alert alert-danger" role="alert">
+              <i class="bi bi-exclamation-triangle-fill"></i> ${data.error}
+            </div>`;
+  }
+
+  if(data.bogon) {
+    return `<div class="alert alert-warning" role="alert">
+              <i class="bi bi-info-circle-fill"></i> La IP consultada es una IP privada o no enrutada (bogon).
+            </div>`;
+  }
+
+  // Mostrar info geolocalizada con íconos y formato
+  return `
+    <ul class="list-group">
+      <li class="list-group-item"><strong>IP:</strong> ${data.ip || 'N/A'}</li>
+      <li class="list-group-item"><strong>Ciudad:</strong> ${data.city || 'N/A'}</li>
+      <li class="list-group-item"><strong>Región:</strong> ${data.region || 'N/A'}</li>
+      <li class="list-group-item"><strong>País:</strong> ${data.country || 'N/A'}</li>
+      <li class="list-group-item"><strong>Organización:</strong> ${data.org || 'N/A'}</li>
+      <li class="list-group-item"><strong>Ubicación (lat,lng):</strong> ${data.loc || 'N/A'}</li>
+      <li class="list-group-item"><strong>Código Postal:</strong> ${data.postal || 'N/A'}</li>
+      <li class="list-group-item"><strong>Hostname:</strong> ${data.hostname || 'N/A'}</li>
+    </ul>`;
+}
+
+async function runGeoIP() {
+  const ip = document.getElementById('geoip-ip').value.trim();
+  const resultDiv = document.getElementById('geoip-result');
+
+  if (!ip) {
+    resultDiv.innerHTML = `<div class="alert alert-warning" role="alert">
+                             <i class="bi bi-exclamation-circle-fill"></i> Por favor ingresa una IP válida.
+                           </div>`;
+    return;
+  }
+
+  resultDiv.innerHTML = `<div class="text-center"><div class="spinner-border text-primary" role="status">
+                           <span class="visually-hidden">Cargando...</span>
+                         </div></div>`;
+
+  try {
+    const res = await fetch('/tools/geoip', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ip})
+    });
+    const data = await res.json();
+
+    resultDiv.innerHTML = formatResult(data);
+  } catch (e) {
+    resultDiv.innerHTML = `<div class="alert alert-danger" role="alert">
+                             <i class="bi bi-x-circle-fill"></i> Error inesperado: ${e.message}
+                           </div>`;
+  }
+}
+</script>
+
+<!-- Bootstrap Icons CDN for icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}DNS Lookup{% endblock %}
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4 text-center">🌐 Consulta DNS Lookup</h2>
+
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="input-group mb-3">
+            <input type="text" id="dns-domain" class="form-control" placeholder="Ingresa dominio (ej. ejemplo.com)" aria-label="Dominio">
+            <button class="btn btn-primary" type="button" onclick="runDNS()">Consultar</button>
+          </div>
+          <div id="dns-result" class="mt-4"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function formatDNSResult(data) {
+  if(data.error) {
+    return `<div class="alert alert-danger" role="alert">
+              <i class="bi bi-exclamation-triangle-fill"></i> ${data.error}
+            </div>`;
+  }
+
+  if(!data.ips || data.ips.length === 0) {
+    return `<div class="alert alert-warning" role="alert">
+              <i class="bi bi-info-circle-fill"></i> No se encontraron registros A para el dominio.
+            </div>`;
+  }
+
+  let ipsList = data.ips.map(ip => `<li class="list-group-item"><i class="bi bi-hdd-network"></i> ${ip}</li>`).join('');
+
+  return `
+    <div>
+      <p><strong>Dominio consultado:</strong> ${data.domain}</p>
+      <ul class="list-group">
+        ${ipsList}
+      </ul>
+    </div>`;
+}
+
+async function runDNS() {
+  const domain = document.getElementById('dns-domain').value.trim();
+  const resultDiv = document.getElementById('dns-result');
+
+  if (!domain) {
+    resultDiv.innerHTML = `<div class="alert alert-warning" role="alert">
+                             <i class="bi bi-exclamation-circle-fill"></i> Por favor ingresa un dominio válido.
+                           </div>`;
+    return;
+  }
+
+  resultDiv.innerHTML = `<div class="text-center"><div class="spinner-border text-primary" role="status">
+                           <span class="visually-hidden">Cargando...</span>
+                         </div></div>`;
+
+  try {
+    const res = await fetch('/tools/dnslookup', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({domain})
+    });
+    const data = await res.json();
+
+    resultDiv.innerHTML = formatDNSResult(data);
+  } catch (e) {
+    resultDiv.innerHTML = `<div class="alert alert-danger" role="alert">
+                             <i class="bi bi-x-circle-fill"></i> Error inesperado: ${e.message}
+                           </div>`;
+  }
+}
+</script>
+
+<!-- Bootstrap Icons CDN for icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+{% endblock %}

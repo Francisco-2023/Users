@@ -1,0 +1,189 @@
+CREATE TABLE contratos (
+    id SERIAL PRIMARY KEY,
+    numero_contrato VARCHAR(50),
+    nombres VARCHAR(100),
+    apellidos VARCHAR(100),
+    cedula VARCHAR(20),
+    direccion VARCHAR(200),
+    telefono VARCHAR(30),
+    email VARCHAR(100),
+    pais VARCHAR(50),
+    provincia VARCHAR(50),
+    canton VARCHAR(50),
+    latitud VARCHAR(30),
+    longitud VARCHAR(30),
+    plan_internet VARCHAR(50),
+    ip_asignada VARCHAR(20),
+    mascara VARCHAR(20),
+    gateway VARCHAR(20),
+    imagen_domicilio VARCHAR(255),
+    fecha_corte DATE,
+    fecha_inicio DATE,
+    fecha_fin DATE,
+    fecha_suspension DATE
+);
+ALTER TABLE contratos ADD COLUMN estado VARCHAR(20) DEFAULT 'Activo';
+ALTER TABLE contratos ADD CONSTRAINT contrato_unico UNIQUE (numero_contrato);
+
+
+
+CREATE TABLE pagos (
+    id SERIAL PRIMARY KEY,
+    contrato_id INTEGER REFERENCES contratos(id),
+    cliente TEXT,
+    monto NUMERIC,
+    metodo_pago TEXT,
+    fecha TIMESTAMP,
+    comprobante TEXT,
+    tipo_recibo TEXT,
+    plan_internet_guardado TEXT,
+    precio_plan_guardado NUMERIC(10,2)
+);
+
+CREATE TABLE usuarios (
+  id SERIAL PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL,
+  correo VARCHAR(100) UNIQUE NOT NULL,
+  telefono VARCHAR(20),
+  rol VARCHAR(50) NOT NULL, -- ej: 'administrador', 'trabajador'
+  area VARCHAR(50),         -- ej: 'finanzas', 'red', 'soporte'
+  username VARCHAR(50) UNIQUE NOT NULL,
+  password_hash VARCHAR(200) NOT NULL,
+  creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+Credenciales
+Usuario: francisco493
+Contraseña: GxptNgfMJF
+
+CREATE TABLE inventario (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion TEXT,
+    categoria VARCHAR(50) NOT NULL,
+    cantidad INTEGER NOT NULL DEFAULT 0,
+    unidad VARCHAR(20) DEFAULT 'unidad',         -- unidad, metro, caja, etc.
+    marca VARCHAR(50),
+    modelo VARCHAR(50),
+    numero_serie VARCHAR(100),                   -- nuevo campo
+    mac_address VARCHAR(50),                     -- nuevo campo
+    especificaciones TEXT,
+    ubicacion VARCHAR(100),
+    proveedor VARCHAR(100),
+    estado VARCHAR(20) DEFAULT 'Disponible',     -- Disponible, En uso, Dañado
+    fecha_ingreso TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE inventario ADD COLUMN codigo CHAR(4) UNIQUE;
+
+CREATE TABLE detalles_producto (
+    id SERIAL PRIMARY KEY,
+    producto_id INTEGER REFERENCES inventario(id) ON DELETE CASCADE,
+    numero_serie VARCHAR(100),
+    mac_address VARCHAR(50) UNIQUE
+);
+
+CREATE TABLE facturas (
+    id SERIAL PRIMARY KEY,
+    contrato_id INTEGER REFERENCES contratos(id) ON DELETE SET NULL,
+    numero_factura VARCHAR(50) UNIQUE NOT NULL,
+    fecha_emision TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    subtotal NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    impuestos NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    total NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    estado VARCHAR(20) DEFAULT 'Pendiente',  -- Pendiente, Pagada, Anulada, etc.
+    notas TEXT,
+    url_pdf VARCHAR(255)  -- Ruta o URL al PDF generado de la factura
+);
+
+CREATE TABLE detalle_factura (
+    id SERIAL PRIMARY KEY,
+    factura_id INTEGER REFERENCES facturas(id) ON DELETE CASCADE,
+    producto_id INTEGER REFERENCES inventario(id) ON DELETE SET NULL,
+    descripcion TEXT NOT NULL,  -- Descripción del ítem (producto o servicio)
+    cantidad INTEGER NOT NULL DEFAULT 1,
+    precio_unitario NUMERIC(12, 2) NOT NULL,
+    subtotal NUMERIC(12, 2) NOT NULL
+);
+
+CREATE TABLE reporte_tecnico (
+    id SERIAL PRIMARY KEY,
+    ticket_id INTEGER REFERENCES tickets(id) ON DELETE CASCADE,
+    descripcion TEXT,
+    coordenadas VARCHAR(100),
+    foto_path TEXT,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE materiales_usados (
+    id SERIAL PRIMARY KEY,
+    reporte_id INTEGER REFERENCES reporte_tecnico(id) ON DELETE CASCADE,
+    nombre_material VARCHAR(100),
+    cantidad INTEGER
+);
+
+CREATE TABLE equipos_usados (
+    id SERIAL PRIMARY KEY,
+    reporte_id INTEGER REFERENCES reportes(id) ON DELETE CASCADE,
+    producto_id INTEGER REFERENCES inventario(id),
+    numero_serie VARCHAR(100),
+    mac_address VARCHAR(50)
+);
+
+ALTER TABLE reporte_tecnico
+ADD COLUMN equipo_usado_id INTEGER REFERENCES inventario(id);
+ALTER TABLE reporte_tecnico ADD COLUMN usuario TEXT;
+ALTER TABLE reporte_tecnico
+DROP CONSTRAINT reporte_tecnico_ticket_id_fkey;
+
+ALTER TABLE reporte_tecnico
+ADD CONSTRAINT reporte_tecnico_ticket_id_fkey
+FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE;
+
+CREATE TABLE cuentas_por_pagar (
+    id SERIAL PRIMARY KEY,
+    proveedor VARCHAR(255) NOT NULL,
+    descripcion TEXT,
+    monto NUMERIC(10, 2) NOT NULL,
+    fecha_vencimiento DATE NOT NULL,
+    estado VARCHAR(50) DEFAULT 'Pendiente',
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE gastos (
+    id SERIAL PRIMARY KEY,
+    fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+    descripcion TEXT NOT NULL,
+    monto NUMERIC(10, 2) NOT NULL,
+    categoria VARCHAR(100),
+    observacion TEXT,
+    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE cuentas_bancarias (
+    id SERIAL PRIMARY KEY,
+    tipo VARCHAR(50) NOT NULL, -- Ej: 'Caja', 'Banco', 'Ahorros'
+    nombre_cuenta VARCHAR(100) NOT NULL,
+    saldo_actual NUMERIC(12, 2) DEFAULT 0,
+    descripcion TEXT,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE presupuestos (
+    id SERIAL PRIMARY KEY,
+    categoria VARCHAR(100) NOT NULL,
+    monto_estimado NUMERIC(12,2) NOT NULL,
+    monto_real NUMERIC(12,2) DEFAULT 0,
+    periodo VARCHAR(50) NOT NULL, -- Ej: '2025-Q1', 'Enero 2025'
+    observacion TEXT,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE impuestos (
+    id SERIAL PRIMARY KEY,
+    tipo_impuesto VARCHAR(100) NOT NULL, -- Ej: IVA, Renta, etc.
+    monto NUMERIC(10, 2) NOT NULL,
+    fecha_pago DATE,
+    periodo VARCHAR(50), -- Ej: '2025-Q2'
+    estado VARCHAR(50) DEFAULT 'Pendiente',
+    observacion TEXT,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

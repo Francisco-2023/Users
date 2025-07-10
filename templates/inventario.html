@@ -1,0 +1,639 @@
+{% extends 'base.html' %}
+{% block title %}Inventario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <!-- Encabezado llamativo -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="display-6 text-gradient fw-bold">📦 Inventario General</h2>
+        <button class="btn btn-gradient-success shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAgregar">
+            <i class="fas fa-plus me-2"></i> Agregar Producto
+        </button>
+    </div>
+
+    <!-- Buscador general -->
+    <div class="d-flex mb-4 shadow align-items-center">
+        <div class="input-group flex-grow-1 me-3">
+            <span class="input-group-text bg-primary text-white">
+                <i class="fas fa-search"></i>
+            </span>
+            <input id="buscadorInventario" type="text" class="form-control border-primary"
+                placeholder="Buscar por cualquier campo (nombre, serie, MAC...)">
+        </div>
+
+        <div class="btn-group">
+            <a href="{{ url_for('exportar_excel') }}" class="btn btn-outline-success btn-sm" target="_blank">
+                <i class="fas fa-file-excel me-1"></i> Exportar a Excel
+            </a>
+            <a href="{{ url_for('exportar_pdf') }}" class="btn btn-outline-danger btn-sm" target="_blank">
+                <i class="fas fa-file-pdf me-1"></i> Exportar a PDF
+            </a>
+        </div>
+    </div>
+
+
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <select id="filtroCategoria" class="form-select">
+                <option value="">Todas las categorías</option>
+                {% for c in ['Antena','Fibra Óptica','Drop','Router','Switch','Cable UTP','Herramientas','ONT','Otros']
+                %}
+                <option value="{{ c }}">{{ c }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <select id="filtroEstado" class="form-select">
+                <option value="">Todos los estados</option>
+                {% for e in ['Disponible','En uso','Dañado'] %}
+                <option value="{{ e }}">{{ e }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <select id="filtroUbicacion" class="form-select">
+                <option value="">Todas las ubicaciones</option>
+                {% for u in ['Almacén Principal','Bodega Secundaria','Taller','Oficina','Instalación Cliente','Otro'] %}
+                <option value="{{ u }}">{{ u }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+
+    <!-- Tarjetas de inventario -->
+    <div class="row gy-4">
+        {% for item in inventario %}
+        <div class="col-md-6 col-lg-4 tarjeta-inventario">
+            <div class="card h-100 shadow-sm border-primary">
+                <div
+                    class="card-header bg-gradient-primary text-blue d-flex justify-content-between align-items-center">
+                    <span class="fw-bold">{{ item.nombre }}</span>
+                    <span
+                        class="badge bg-{{ 'success' if item.estado=='Disponible' else 'warning' if item.estado=='En uso' else 'danger' }}">
+                        {{ item.estado }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    {% if item.imagen_domicilio %}
+                    <div class="card-img-top overflow-hidden rounded-top" style="height: 200px;">
+                        <img src="{{ url_for('static', filename='uploads/' ~ item.imagen_domicilio) }}"
+                            alt="{{ item.nombre }}" class="w-150 h-100" style="object-fit: cover;" loading="lazy">
+                    </div>
+                    {% endif %}
+
+                    <ul class="list-unstyled mb-3">
+                        <li><i class="fas fa-barcode me-2 text-muted"></i><strong>Código:</strong> {{ item.codigo }}
+                        </li>
+                        <li><i class="fas fa-tags me-2 text-muted"></i><strong>Categoría:</strong> {{ item.categoria }}
+                        </li>
+                        <li><i class="fas fa-industry me-2 text-muted"></i><strong>Marca/Modelo:</strong> {{ item.marca
+                            }} {{ item.modelo }}</li>
+                        <li><i class="fas fa-cubes me-2 text-muted"></i><strong>Cantidad:</strong> {{ item.cantidad }}
+                            {{ item.unidad }}</li>
+                        <li><i class="fas fa-map-marker-alt me-2 text-muted"></i><strong>Ubicación:</strong> {{
+                            item.ubicacion }}</li>
+                        <li><i class="fas fa-truck me-2 text-muted"></i><strong>Proveedor:</strong> {{ item.proveedor }}
+                        </li>
+                        <li><i class="fas fa-calendar-alt me-2 text-muted"></i><strong>Ingreso:</strong> {{
+                            item.fecha_ingreso.strftime('%Y-%m-%d') }}</li>
+                    </ul>
+
+                    {% if item.detalles %}
+                    <div class="mb-2">
+                        <strong>Series y MACs:</strong>
+                        <ul class="list-group list-group-sm">
+                            {% for detalle in item.detalles %}
+                            <li class="list-group-item py-1">
+                                <i class="fas fa-hashtag text-muted me-1"></i><strong>Serie:</strong> {{ detalle.serie
+                                }} |
+                                <i class="fas fa-network-wired text-muted ms-2 me-1"></i><strong>MAC:</strong> {{
+                                detalle.mac }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    {% if item.descripcion %}
+                    <div class="descripcion-container">
+                        <p class="card-text descripcion-corta">
+                            {{ item.descripcion[:150] }}{% if item.descripcion|length > 150 %}...{% endif %}
+                        </p>
+
+                        {% if item.descripcion|length > 150 %}
+                        <p class="card-text descripcion-completa d-none">
+                            {{ item.descripcion }}
+                        </p>
+                        <button type="button" class="btn btn-sm btn-outline-secondary leer-mas-btn mt-2">
+                            Leer más
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                </div>
+
+                <div class="card-footer bg-light d-flex justify-content-end gap-2">
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+                        data-bs-target="#modalEditar{{ item.id }}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <form method="POST" action="{{ url_for('eliminar_producto', id=item.id) }}">
+                        <button class="btn btn-sm btn-outline-danger"
+                            onclick="return confirm('¿Eliminar este producto?')">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <nav class="d-flex justify-content-center mt-4">
+        <ul class="pagination" id="paginacion"></ul>
+    </nav>
+</div>
+
+<div class="modal fade" id="modalAgregar" tabindex="-1" aria-labelledby="modalAgregarLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <form method="POST" action="{{ url_for('agregar_producto') }}" enctype="multipart/form-data" class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="modalAgregarLabel">Agregar Producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body row g-3">
+                <div class="col-md-6">
+                    <label for="nombre" class="form-label">Nombre</label>
+                    <input type="text" name="nombre" id="nombre" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="categoria" class="form-label">Categoría</label>
+                    <select name="categoria" id="categoria" class="form-select" required>
+                        <option>Antena</option>
+                        <option>Fibra Óptica</option>
+                        <option>Drop</option>
+                        <option>Router</option>
+                        <option>Switch</option>
+                        <option>ONT</option>
+                        <option>Cable UTP</option>
+                        <option>Herramientas</option>
+                        <option>Otros</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="marca" class="form-label">Marca</label>
+                    <input type="text" name="marca" id="marca" class="form-control">
+                </div>
+                <div class="col-md-6">
+                    <label for="modelo" class="form-label">Modelo</label>
+                    <input type="text" name="modelo" id="modelo" class="form-control">
+                </div>
+                <div class="col-md-6">
+                    <label for="cantidad" class="form-label">Cantidad</label>
+                    <input type="number" name="cantidad" id="cantidad" class="form-control" required min="0">
+                </div>
+                <div class="col-md-6">
+                    <label for="precio_unitario" class="form-label">Precio Unitario</label>
+                    <input type="number" name="precio_unitario" id="precio_unitario" class="form-control" required min="0" step="0.01">
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Series y MACs</label>
+                    <div id="series-container">
+                        <div class="row g-2 mb-2 series-row">
+                            <div class="col-md-6">
+                                <input type="text" name="series[]" class="form-control" placeholder="Número de serie" required>
+                            </div>
+                            <div class="col-md-6">
+                                <input type="text" name="macs[]" class="form-control" placeholder="MAC Address" required>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-success mt-2" onclick="agregarSerieFila()">➕ Agregar otra serie</button>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="unidad" class="form-label">Unidad</label>
+                    <select name="unidad" id="unidad" class="form-select" required>
+                        <option>Unidad</option>
+                        <option>Metro</option>
+                        <option>Rollos</option>
+                        <option>Caja</option>
+                        <option>Paquete</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="estado" class="form-label">Estado</label>
+                    <select name="estado" id="estado" class="form-select">
+                        <option>Disponible</option>
+                        <option>En uso</option>
+                        <option>Dañado</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="ubicacion" class="form-label">Ubicación</label>
+                    <select name="ubicacion" id="ubicacion" class="form-select" required>
+                        <option>Almacén Principal</option>
+                        <option>Bodega Secundaria</option>
+                        <option>Taller</option>
+                        <option>Oficina</option>
+                        <option>Instalación Cliente</option>
+                        <option>Otro</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="proveedor" class="form-label">Proveedor</label>
+                    <select name="proveedor" id="proveedor" class="form-select" required>
+                        <option>Proveedor A</option>
+                        <option>Proveedor B</option>
+                        <option>Proveedor C</option>
+                        <option>Otro</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="imagen_producto" class="form-label">Foto del producto</label>
+                    <input type="file" name="imagen_domicilio" id="imagen_producto" class="form-control" accept="image/*">
+                </div>
+
+                <div class="col-12">
+                    <label for="descripcion" class="form-label">Descripción</label>
+                    <textarea name="descripcion" id="descripcion" class="form-control"></textarea>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-success">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% for item in inventario %}
+<div class="modal fade" id="modalEditar{{ item.id }}" tabindex="-1" aria-labelledby="modalEditarLabel{{ item.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <form method="POST" action="{{ url_for('editar_producto', id=item.id) }}" enctype="multipart/form-data" class="modal-content">
+
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalEditarLabel{{ item.id }}">Editar Producto: {{ item.nombre }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body row g-3">
+
+                <div class="col-md-6">
+                    <label for="nombre-{{ item.id }}" class="form-label">Nombre</label>
+                    <input type="text" name="nombre" id="nombre-{{ item.id }}" class="form-control" value="{{ item.nombre }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="categoria-{{ item.id }}" class="form-label">Categoría</label>
+                    <select name="categoria" id="categoria-{{ item.id }}" class="form-select" required>
+                        {% for c in ['Antena','Fibra Óptica','Drop','Router','Switch','Cable UTP','Herramientas','ONT','Otros'] %}
+                        <option value="{{c}}" {% if item.categoria==c %}selected{% endif %}>{{c}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="marca-{{ item.id }}" class="form-label">Marca</label>
+                    <input type="text" name="marca" id="marca-{{ item.id }}" class="form-control" value="{{ item.marca }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="modelo-{{ item.id }}" class="form-label">Modelo</label>
+                    <input type="text" name="modelo" id="modelo-{{ item.id }}" class="form-control" value="{{ item.modelo }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="cantidad-{{ item.id }}" class="form-label">Cantidad</label>
+                    <input type="number" name="cantidad" id="cantidad-{{ item.id }}" class="form-control" value="{{ item.cantidad }}" required min="0">
+                </div>
+                <div class="col-md-6">
+                    <label for="precio_unitario-{{ item.id }}" class="form-label">Precio Unitario</label>
+                    <input type="number" name="precio_unitario" id="precio_unitario-{{ item.id }}" class="form-control" value="{{ item.precio_unitario }}" required min="0" step="0.01">
+                </div>
+
+
+                <div class="col-12">
+                    <label class="form-label">Series y MACs</label>
+                    <div id="series-container-{{ item.id }}"> {# Contenedor único para cada modal #}
+                        {% for s in item.detalles %}
+                        <div class="row g-2 mb-2 series-row">
+                            <div class="col-md-6">
+                                <input type="text" name="series[]" class="form-control" value="{{ s.serie }}" placeholder="Número de serie" required>
+                            </div>
+                            <div class="col-md-6 d-flex">
+                                <input type="text" name="macs[]" class="form-control me-2" value="{{ s.mac }}" placeholder="MAC Address" required>
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarFila(this)">✖</button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-success mt-2" onclick="agregarSerieFilaEditar('series-container-{{ item.id }}')">➕ Agregar otra serie</button>
+                </div>
+
+
+                <div class="col-md-4">
+                    <label for="unidad-{{ item.id }}" class="form-label">Unidad</label>
+                    <select name="unidad" id="unidad-{{ item.id }}" class="form-select" required>
+                        {% for u in ['Unidad','Metro','Rollos','Caja','Paquete'] %}
+                        <option value="{{u}}" {% if item.unidad==u %}selected{% endif %}>{{u}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="estado-{{ item.id }}" class="form-label">Estado</label>
+                    <select name="estado" id="estado-{{ item.id }}" class="form-select">
+                        {% for s in ['Disponible','En uso','Dañado'] %}
+                        <option value="{{s}}" {% if item.estado==s %}selected{% endif %}>{{s}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="ubicacion-{{ item.id }}" class="form-label">Ubicación</label>
+                    <select name="ubicacion" id="ubicacion-{{ item.id }}" class="form-select" required>
+                        {% for loc in ['Almacén Principal','Bodega Secundaria','Taller','Oficina','Instalación Cliente','Otro'] %}
+                        <option value="{{loc}}" {% if item.ubicacion==loc %}selected{% endif %}>{{loc}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="proveedor-{{ item.id }}" class="form-label">Proveedor</label>
+                    <select name="proveedor" id="proveedor-{{ item.id }}" class="form-select" required>
+                        {% for p in ['Proveedor A','Proveedor B','Proveedor C','Otro'] %}
+                        <option value="{{p}}" {% if item.proveedor==p %}selected{% endif %}>{{p}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="imagen_producto-{{ item.id }}" class="form-label">Foto del producto</label>
+                    <input type="file" name="imagen_domicilio" id="imagen_producto-{{ item.id }}" class="form-control" accept="image/*">
+                    {% if item.imagen_url %}
+                        <small class="text-muted mt-1 d-block">Imagen actual: <a href="{{ item.imagen_url }}" target="_blank">Ver Imagen</a></small>
+                    {% endif %}
+                </div>
+
+                <div class="col-12">
+                    <label for="descripcion-{{ item.id }}" class="form-label">Descripción</label>
+                    <textarea name="descripcion" id="descripcion-{{ item.id }}" class="form-control">{{ item.descripcion }}</textarea>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Actualizar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Script de búsqueda en tiempo real -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const input = document.getElementById('buscadorInventario');
+        const tarjetas = document.querySelectorAll('.tarjeta-inventario');
+
+        input.addEventListener('input', () => {
+            const filtro = input.value.toLowerCase().trim();
+
+            tarjetas.forEach(tarjeta => {
+                const texto = tarjeta.textContent.toLowerCase();
+                tarjeta.style.display = texto.includes(filtro) ? '' : 'none';
+            });
+        });
+    });
+</script>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const categoria = document.getElementById('filtroCategoria');
+        const estado = document.getElementById('filtroEstado');
+        const ubicacion = document.getElementById('filtroUbicacion');
+        const tarjetas = document.querySelectorAll('.card');
+
+        function filtrar() {
+            const catVal = categoria.value.toLowerCase();
+            const estVal = estado.value.toLowerCase();
+            const ubiVal = ubicacion.value.toLowerCase();
+
+            tarjetas.forEach(card => {
+                const texto = card.innerText.toLowerCase();
+                const visible =
+                    (catVal === '' || texto.includes(catVal)) &&
+                    (estVal === '' || texto.includes(estVal)) &&
+                    (ubiVal === '' || texto.includes(ubiVal));
+                card.parentElement.style.display = visible ? '' : 'none';
+            });
+        }
+
+        categoria.addEventListener('change', filtrar);
+        estado.addEventListener('change', filtrar);
+        ubicacion.addEventListener('change', filtrar);
+    });
+</script>
+
+<script>
+    function agregarSerieFila() {
+        const container = document.getElementById('series-container');
+        const fila = container.querySelector('.series-row').cloneNode(true);
+        fila.querySelectorAll('input').forEach(input => input.value = '');
+        container.appendChild(fila);
+    }
+</script>
+<script>
+    function agregarFilaEditar(id) {
+        const container = document.getElementById(`series-container-${id}`);
+        const fila = document.createElement('div');
+        fila.classList.add('row', 'g-2', 'mb-2', 'series-row');
+        fila.innerHTML = `
+        <div class="col-md-6">
+            <input type="text" name="series[]" class="form-control" placeholder="Número de serie" required>
+        </div>
+        <div class="col-md-6 d-flex">
+            <input type="text" name="macs[]" class="form-control me-2" placeholder="MAC Address" required>
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarFila(this)">✖</button>
+        </div>
+    `;
+        container.appendChild(fila);
+    }
+
+    function eliminarFila(btn) {
+        btn.closest('.series-row').remove();
+    }
+</script>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const categoriaSelect = document.querySelector('select[name="categoria"]');
+        const serieField = document.querySelector('input[name="numero_serie"]').closest('.col-md-6');
+        const macField = document.querySelector('input[name="mac_address"]').closest('.col-md-6');
+
+        function ajustarCampos() {
+            const categoria = categoriaSelect.value;
+            if (categoria === 'Router' || categoria === 'Switch' || categoria === 'ONT' || categoria === 'Antena') {
+                serieField.style.display = 'block';
+                macField.style.display = (categoria === 'Router' || categoria === 'ONT' || categoria === 'Switch') ? 'block' : 'none';
+            } else {
+                serieField.style.display = 'none';
+                macField.style.display = 'none';
+            }
+        }
+
+        categoriaSelect.addEventListener('change', ajustarCampos);
+        ajustarCampos();  // Para ajustar al cargar el modal
+    });
+    document.querySelectorAll('.leer-mas-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const container = btn.closest('.descripcion-container');
+            const corta = container.querySelector('.descripcion-corta');
+            const completa = container.querySelector('.descripcion-completa');
+
+            if (completa.classList.contains('d-none')) {
+                completa.classList.remove('d-none');
+                corta.classList.add('d-none');
+                btn.textContent = 'Leer menos';
+            } else {
+                completa.classList.add('d-none');
+                corta.classList.remove('d-none');
+                btn.textContent = 'Leer más';
+            }
+        });
+    });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const tarjetas = document.querySelectorAll('.card');
+        const paginacion = document.getElementById('paginacion');
+        const tarjetasPorPagina = 3;
+        let paginaActual = 1;
+
+        function mostrarPagina(pagina) {
+            const tarjetasVisibles = Array.from(tarjetas).filter(t => t.parentElement.style.display !== 'none');
+            const totalPaginas = Math.ceil(tarjetasVisibles.length / tarjetasPorPagina);
+
+            paginaActual = Math.max(1, Math.min(pagina, totalPaginas));
+
+            tarjetas.forEach(t => t.parentElement.style.display = 'none');
+            tarjetasVisibles.slice((paginaActual - 1) * tarjetasPorPagina, paginaActual * tarjetasPorPagina)
+                .forEach(t => t.parentElement.style.display = '');
+
+            generarControles(totalPaginas);
+        }
+
+        function generarControles(total) {
+            paginacion.innerHTML = '';
+
+            const crearBoton = (label, page, disabled = false) => {
+                const li = document.createElement('li');
+                li.className = `page-item ${disabled ? 'disabled' : ''}`;
+                const a = document.createElement('a');
+                a.className = 'page-link';
+                a.href = '#';
+                a.textContent = label;
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (!disabled) mostrarPagina(page);
+                });
+                li.appendChild(a);
+                return li;
+            };
+
+            paginacion.appendChild(crearBoton('Anterior', paginaActual - 1, paginaActual === 1));
+
+            for (let i = 1; i <= total; i++) {
+                const li = crearBoton(i, i, false);
+                if (i === paginaActual) li.classList.add('active');
+                paginacion.appendChild(li);
+            }
+
+            paginacion.appendChild(crearBoton('Siguiente', paginaActual + 1, paginaActual === total));
+        }
+
+        // Mostrar la primera página
+        mostrarPagina(1);
+
+        // Refrescar paginación cuando se filtra o se busca
+        const filtros = ['buscarCodigo', 'filtroCategoria', 'filtroEstado', 'filtroUbicacion'];
+        filtros.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', () => mostrarPagina(1));
+            if (el) el.addEventListener('change', () => mostrarPagina(1));
+        });
+    });
+</script>
+<script>
+    function descargarArchivo(nombre, contenido, tipo) {
+        const blob = new Blob([contenido], { type: tipo });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = nombre;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    // Recolecta las tarjetas visibles
+    function obtenerDatosTarjetas() {
+        const tarjetas = document.querySelectorAll('.card:visible');
+        const datos = [];
+
+        tarjetas.forEach(card => {
+            const nombre = card.querySelector('.card-header span.fw-bold')?.textContent.trim() || '';
+            const codigo = card.querySelector('li:nth-child(1)')?.textContent.replace('Código:', '').trim() || '';
+            const categoria = card.querySelector('li:nth-child(2)')?.textContent.replace('Categoría:', '').trim() || '';
+            const marcaModelo = card.querySelector('li:nth-child(3)')?.textContent.replace('Marca/Modelo:', '').trim() || '';
+            const ubicacion = card.querySelector('li:nth-child(5)')?.textContent.replace('Ubicación:', '').trim() || '';
+            const proveedor = card.querySelector('li:nth-child(6)')?.textContent.replace('Proveedor:', '').trim() || '';
+            const estado = card.querySelector('.badge')?.textContent.trim() || '';
+            datos.push([nombre, codigo, categoria, marcaModelo, ubicacion, proveedor, estado]);
+        });
+
+        return datos;
+    }
+
+    function exportarCSV() {
+        const datos = obtenerDatosTarjetas();
+        const encabezados = ["Nombre", "Código", "Categoría", "Marca/Modelo", "Ubicación", "Proveedor", "Estado"];
+        let csv = encabezados.join(",") + "\n";
+
+        datos.forEach(fila => {
+            csv += fila.map(campo => `"${campo}"`).join(",") + "\n";
+        });
+
+        descargarArchivo("inventario.csv", csv, "text/csv");
+    }
+
+    function exportarExcel() {
+        const datos = obtenerDatosTarjetas();
+        let tabla = '<table border="1"><tr><th>Nombre</th><th>Código</th><th>Categoría</th><th>Marca/Modelo</th><th>Ubicación</th><th>Proveedor</th><th>Estado</th></tr>';
+
+        datos.forEach(fila => {
+            tabla += `<tr>${fila.map(c => `<td>${c}</td>`).join('')}</tr>`;
+        });
+
+        tabla += '</table>';
+
+        const blob = new Blob(['\ufeff' + tabla], { type: 'application/vnd.ms-excel' });
+        descargarArchivo("inventario.xls", blob, "application/vnd.ms-excel");
+    }
+
+    document.getElementById('btnExportCSV').addEventListener('click', exportarCSV);
+    document.getElementById('btnExportExcel').addEventListener('click', exportarExcel);
+</script>
+
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% block title %}Reporte Técnico - Ticket #{{ ticket.id }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="text-primary mb-4">📝 Reporte Técnico - Ticket #{{ ticket.id }}</h2>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data">
+
+                <!-- ✅ Descripción -->
+                <div class="mb-3">
+                    <label for="descripcion" class="form-label"><strong>Descripción del trabajo
+                            realizado</strong></label>
+                    <textarea name="descripcion" id="descripcion" class="form-control" rows="3" required></textarea>
+                </div>
+
+                <!-- ✅ Materiales con cantidad y opción de agregar más -->
+                <div class="mb-3">
+                    <label class="form-label"><strong>Materiales usados</strong></label>
+                    <div id="materiales-container">
+                        <div class="row mb-2 material-item">
+                            <div class="col-md-6">
+                                <select name="materiales[]" class="form-select" required>
+                                    <option value="" disabled selected>Seleccione material</option>
+                                    <option value="Grapas">Grapas</option>
+                                    <option value="Alambre">Alambre</option>
+                                    <option value="Amarras">Amarras</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="number" name="cantidades[]" class="form-control" min="1"
+                                    placeholder="Cantidad" required>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-danger btn-remove-material">🗑</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" id="add-material" class="btn btn-secondary mt-2">➕ Agregar otro
+                        material</button>
+                </div>
+
+                <div class="mb-3">
+                    <label for="equipo_usado" class="form-label"><strong>Equipo usado</strong></label>
+                    <select name="equipo_usado" id="equipo_usado" class="form-select" required>
+                        {% for item in inventario %}
+                        {% for d in item.detalles %}
+                        <option value="{{ d.id }}">
+                            {{ item.nombre }} - {{ d.serie }} - {{ d.mac }}
+                        </option>
+                        {% endfor %}
+                        {% endfor %}
+                    </select>
+
+                    <!-- Mostrar detalles por cada detalle_id (no por equipo.id) -->
+                    <div id="detalles_equipos" class="mt-2">
+                        {% for item in inventario %}
+                        {% for detalle in item.detalles %}
+                        <div class="detalles-equipo d-none" data-detalle-id="{{ detalle.id }}">
+                            <strong>Series y MACs:</strong>
+                            <ul class="list-group list-group-sm">
+                                <li class="list-group-item py-1">
+                                    <i class="fas fa-hashtag text-muted me-1"></i><strong>Serie:</strong>
+                                    {{ detalle.serie or 'N/A' }}
+                                    <i class="fas fa-network-wired text-muted ms-2 me-1"></i><strong>MAC:</strong>
+                                    {{ detalle.mac or 'N/A' }}
+                                </li>
+                            </ul>
+                        </div>
+                        {% endfor %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+
+                <div class="row">
+                    <div class="mb-3 col-md-6">
+                        <label for="serie_equipo" class="form-label"><strong>Serie equipo (opcional)</strong></label>
+                        <input type="text" name="serie_equipo" id="serie_equipo" class="form-control"
+                            placeholder="Ingrese serie">
+                    </div>
+                    <div class="mb-3 col-md-6">
+                        <label for="mac_equipo" class="form-label"><strong>MAC equipo (opcional)</strong></label>
+                        <input type="text" name="mac_equipo" id="mac_equipo" class="form-control"
+                            placeholder="Ingrese MAC">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="mb-3 col-md-6">
+                        <label for="latitud" class="form-label"><strong>Latitud</strong></label>
+                        <input type="text" name="latitud" id="latitud" class="form-control" required>
+                    </div>
+                    <div class="mb-3 col-md-6">
+                        <label for="longitud" class="form-label"><strong>Longitud</strong></label>
+                        <input type="text" name="longitud" id="longitud" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="foto" class="form-label"><strong>Subir Foto</strong></label>
+                    <input type="file" name="foto" id="foto" class="form-control" accept="image/*">
+                </div>
+
+                <!-- La fecha se asigna automáticamente en backend, pero la puedes mostrar aquí solo para info -->
+                <div class="mb-3">
+                    <label class="form-label"><strong>Fecha del reporte</strong></label>
+                    <input type="text" class="form-control"
+                        value="{{ datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S') }}" readonly>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Guardar Reporte</button>
+                <a href="{{ url_for('ticket') }}" class="btn btn-secondary ms-2">Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const selectEquipo = document.getElementById('equipo_usado');
+    const detallesEquipos = document.querySelectorAll('.detalles-equipo');
+
+    selectEquipo.addEventListener('change', () => {
+        const seleccionado = selectEquipo.value;
+        detallesEquipos.forEach(div => {
+            if (div.getAttribute('data-detalle-id') === seleccionado) {
+                div.classList.remove('d-none');
+            } else {
+                div.classList.add('d-none');
+            }
+        });
+    });
+</script>
+<script>
+    document.getElementById('add-material').addEventListener('click', () => {
+        const container = document.getElementById('materiales-container');
+        const materialItem = document.createElement('div');
+        materialItem.className = 'row mb-2 material-item';
+        materialItem.innerHTML = `
+            <div class="col-md-6">
+                <select name="materiales[]" class="form-select" required>
+                    <option value="" disabled selected>Seleccione material</option>
+                    <option value="Grapas">Grapas</option>
+                    <option value="Alambre">Alambre</option>
+                    <option value="Amarras">Amarras</option>
+                    <option value="Otro">Otro</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <input type="number" name="cantidades[]" class="form-control" min="1" placeholder="Cantidad" required>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-danger btn-remove-material">🗑</button>
+            </div>
+        `;
+        container.appendChild(materialItem);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('btn-remove-material')) {
+            e.target.closest('.material-item').remove();
+        }
+    });
+</script>
+
+
+
+{% endblock %}

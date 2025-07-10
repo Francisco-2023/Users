@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Terminal CLI MikroTik{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 bg-dark text-light" style="min-height: 100vh;">
+    <div class="mx-auto" style="max-width: 950px;">
+        <h3 class="text-info mb-4 text-center">Terminal en Vivo MikroTik</h3>
+        
+        <div id="console" class="bg-black p-3 rounded shadow-sm" style="height: 500px; overflow-y: auto; font-family: monospace; font-size: 15px;">
+            <div id="log"></div>
+            <div class="d-flex mt-1">
+                <span class="me-2 text-success">admin@mikrotik:~$</span>
+                <input type="text" id="terminal-input" class="form-control bg-dark text-light border-0" style="font-family: monospace; font-size: 15px;" autofocus autocomplete="off">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const input = document.getElementById("terminal-input");
+const log = document.getElementById("log");
+const consoleBox = document.getElementById("console");
+
+let commandHistory = [];
+let historyIndex = -1;
+
+input.focus();
+
+input.addEventListener("keydown", async function (e) {
+    if (e.key === "Enter") {
+        const command = input.value.trim();
+        if (!command) return;
+
+        log.innerHTML += `<div><span class="text-success">admin@mikrotik:~$</span> ${command}</div>`;
+        input.value = "";
+
+        const response = await fetch("/api/terminal/run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ command: command })
+        });
+
+        const result = await response.json();
+        const output = result.output
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;").replace(/\n/g, "<br>").replace(/\s/g, "&nbsp;");
+
+        log.innerHTML += `<div class="text-light">${output}</div>`;
+        consoleBox.scrollTop = consoleBox.scrollHeight;
+
+        commandHistory.push(command);
+        historyIndex = commandHistory.length;
+    }
+
+    if (e.key === "ArrowUp") {
+        if (historyIndex > 0) {
+            historyIndex--;
+            input.value = commandHistory[historyIndex] || '';
+        }
+        e.preventDefault();
+    }
+
+    if (e.key === "ArrowDown") {
+        if (historyIndex < commandHistory.length - 1) {
+            historyIndex++;
+            input.value = commandHistory[historyIndex] || '';
+        } else {
+            input.value = '';
+        }
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

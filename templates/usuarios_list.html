@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+{% block title %}Usuarios{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4 text-center fw-bold text-primary">👥 Gestión de Usuarios</h2>
+
+    <div class="d-flex justify-content-between mb-3">
+        <button class="btn btn-primary" id="btnNuevoUsuario">
+            <i class="bi bi-person-plus-fill"></i> Crear Nuevo Usuario
+        </button>
+    </div>
+
+    <table class="table tabla-azul" id="tablaUsuarios" style="width:100%">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Usuario</th>
+                <th>Correo</th>
+                <th>Teléfono</th>
+                <th>Rol</th>
+                <th>Área</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- JS llenará -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal Crear / Editar -->
+<div class="modal fade" id="modalUsuario" tabindex="-1" aria-labelledby="modalUsuarioLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="formUsuario">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalUsuarioLabel">Crear Usuario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="usuarioId" value="">
+
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" id="nombre" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="correo" class="form-label">Correo *</label>
+                        <input type="email" class="form-control" id="correo" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="telefono" class="form-label">Teléfono</label>
+                        <input type="text" class="form-control" id="telefono">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="rol" class="form-label">Rol *</label>
+                        <select class="form-select" id="rol" required>
+                            <option value="" selected disabled>Seleccione un rol</option>
+                            <option value="Administrador">Administrador</option>
+                            <option value="Trabajador">Trabajador</option>
+                            <option value="Supervisor">Supervisor</option>
+                            <option value="Invitado">Invitado</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="area" class="form-label">Área *</label>
+                        <select class="form-select" id="area" required>
+                            <option value="" selected disabled>Seleccione un área</option>
+                            <option value="Ventas">Ventas</option>
+                            <option value="Soporte Técnico">Soporte Técnico</option>
+                            <option value="Administración">Administración</option>
+                            <option value="Recursos Humanos">Recursos Humanos</option>
+                            <option value="Marketing">Marketing</option>
+                        </select>
+                    </div>
+
+                    <div id="errorMensaje" class="alert alert-danger d-none"></div>
+                    <small class="text-muted">El usuario y la contraseña se generan automáticamente.</small>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary" id="btnGuardar">Guardar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Mostrar Credenciales -->
+<div class="modal fade" id="modalCredenciales" tabindex="-1" aria-labelledby="modalCredencialesLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalCredencialesLabel">Credenciales Generadas</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Usuario:</strong> <span id="credUsername"></span></p>
+                <p><strong>Contraseña:</strong> <span id="credPassword"></span></p>
+                <p class="small text-muted">Guarda esta información, ya que la contraseña solo se muestra una vez.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal Confirmar Eliminar -->
+<div class="modal fade" id="modalEliminar" tabindex="-1" aria-labelledby="modalEliminarLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalEliminarLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                ¿Seguro que deseas eliminar este usuario?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" id="btnConfirmarEliminar">Eliminar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap Icons -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+
+<!-- DataTables CSS y JS -->
+<link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<style>
+    /* Tabla azul similar al botón */
+    .tabla-azul {
+        border-collapse: separate !important;
+        border-spacing: 0 12px !important;
+    }
+
+    .tabla-azul thead tr {
+        background-color: #0d6efd;
+        color: white;
+        border-radius: 12px;
+    }
+
+    .tabla-azul thead th {
+        border: none !important;
+        padding: 12px 15px;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .tabla-azul tbody tr {
+        background: #cfe2ff;
+        /* azul claro */
+        box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2);
+        border-radius: 12px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .tabla-azul tbody tr:hover {
+        background: #b6d4fe;
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px rgba(13, 110, 253, 0.35);
+        cursor: pointer;
+    }
+
+    .tabla-azul tbody td {
+        border: none !important;
+        padding: 15px;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    /* Botones en fila */
+    .btnEditar {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        transition: background-color 0.3s ease;
+    }
+
+    .btnEditar:hover {
+        background-color: #0847c2;
+        border-color: #0847c2;
+    }
+
+    .btnEliminar {
+        background-color: #0b5ed7;
+        border-color: #0b5ed7;
+        transition: background-color 0.3s ease;
+    }
+
+    .btnEliminar:hover {
+        background-color: #083aaf;
+        border-color: #083aaf;
+    }
+</style>
+<script>
+    $(document).ready(function () {
+        const modalUsuario = new bootstrap.Modal(document.getElementById('modalUsuario'));
+        const modalEliminar = new bootstrap.Modal(document.getElementById('modalEliminar'));
+        const errorMensaje = document.getElementById('errorMensaje');
+        let eliminarId = null;
+        let tabla;
+
+        async function cargarUsuarios() {
+            const res = await fetch('/api/usuarios');
+            const usuarios = await res.json();
+
+            if (tabla) {
+                tabla.clear();
+                tabla.rows.add(usuarios.map(u => [
+                    u.id,
+                    u.nombre,
+                    u.username || '-',
+                    u.correo,
+                    u.telefono || '-',
+                    u.rol || '-',
+                    u.area || '-',
+                    `<button class="btn btn-sm btnEditar" data-id="${u.id}"><i class="bi bi-pencil-square"></i></button>
+                     <button class="btn btn-sm btnEliminar ms-2" data-id="${u.id}"><i class="bi bi-trash-fill"></i></button>
+                     <button class="btn btn-sm btnReset ms-2 btn-warning" data-id="${u.id}"><i class="bi bi-key-fill"></i></button>`
+                ]));
+                tabla.draw();
+            } else {
+                tabla = $('#tablaUsuarios').DataTable({
+                    data: usuarios.map(u => [
+                        u.id,
+                        u.nombre,
+                        u.username || '-',
+                        u.correo,
+                        u.telefono || '-',
+                        u.rol || '-',
+                        u.area || '-',
+                        `<button class="btn btn-sm btnEditar" data-id="${u.id}"><i class="bi bi-pencil-square"></i></button>
+                         <button class="btn btn-sm btnEliminar ms-2" data-id="${u.id}"><i class="bi bi-trash-fill"></i></button>
+                         <button class="btn btn-sm btnReset ms-2 btn-warning" data-id="${u.id}"><i class="bi bi-key-fill"></i></button>`
+                    ]),
+                    columns: [
+                        { title: "ID" },
+                        { title: "Nombre" },
+                        { title: "Usuario" },
+                        { title: "Correo" },
+                        { title: "Teléfono" },
+                        { title: "Rol" },
+                        { title: "Área" },
+                        { title: "Acciones", orderable: false, searchable: false, width: "140px" }
+                    ],
+                    language: {
+                        url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                    },
+                    lengthChange: false,
+                    pageLength: 10,
+                    responsive: true,
+                    ordering: true,
+                });
+            }
+        }
+
+        // Delegación de eventos para que funcionen incluso después de redibujar la tabla
+        $('#tablaUsuarios tbody').off('click');
+
+        $('#tablaUsuarios tbody').on('click', '.btnEditar', async function () {
+            const id = $(this).data('id');
+            errorMensaje.classList.add('d-none');
+            try {
+                const res = await fetch(`/api/usuarios/${id}`);
+                const usuario = await res.json();
+                if (usuario.error) {
+                    alert(usuario.error);
+                    return;
+                }
+                $('#usuarioId').val(usuario.id);
+                $('#nombre').val(usuario.nombre);
+                $('#correo').val(usuario.correo);
+                $('#telefono').val(usuario.telefono || '');
+                $('#rol').val(usuario.rol || '');
+                $('#area').val(usuario.area || '');
+                $('#modalUsuarioLabel').text('Editar Usuario');
+                modalUsuario.show();
+            } catch (err) {
+                alert('Error al obtener datos del usuario');
+            }
+        });
+
+        $('#tablaUsuarios tbody').on('click', '.btnEliminar', function () {
+            eliminarId = $(this).data('id');
+            modalEliminar.show();
+        });
+
+        $('#tablaUsuarios tbody').on('click', '.btnReset', async function () {
+            const id = $(this).data('id');
+            if (!confirm('¿Seguro que deseas resetear la contraseña de este usuario?')) return;
+
+            try {
+                const res = await fetch(`/api/usuarios/${id}/reset_password`, { method: 'POST' });
+                const data = await res.json();
+
+                if (res.ok) {
+                    // Mostrar nueva contraseña en modal
+                    $('#credUsername').text(data.username || '');
+                    $('#credPassword').text(data.contrasena);
+                    const modalCred = new bootstrap.Modal(document.getElementById('modalCredenciales'));
+                    modalCred.show();
+                } else {
+                    alert(data.error || 'Error al resetear contraseña');
+                }
+            } catch (error) {
+                alert('Error al resetear contraseña');
+            }
+        });
+
+        // Abrir modal para nuevo usuario
+        $('#btnNuevoUsuario').click(function () {
+            errorMensaje.classList.add('d-none');
+            $('#formUsuario')[0].reset();
+            $('#usuarioId').val('');
+            $('#modalUsuarioLabel').text('Crear Usuario');
+            modalUsuario.show();
+        });
+
+        // Guardar usuario (crear o actualizar)
+        $('#formUsuario').submit(async function (e) {
+            e.preventDefault();
+            errorMensaje.classList.add('d-none');
+
+            const id = $('#usuarioId').val();
+            const nombre = $('#nombre').val().trim();
+            const correo = $('#correo').val().trim();
+            const telefono = $('#telefono').val().trim();
+            const rol = $('#rol').val();
+            const area = $('#area').val();
+
+            if (!nombre || !correo || !rol || !area) {
+                errorMensaje.textContent = 'Por favor, completa todos los campos obligatorios.';
+                errorMensaje.classList.remove('d-none');
+                return;
+            }
+
+            const url = id ? `/api/usuarios/${id}` : '/api/usuarios';
+            const method = id ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, correo, telefono, rol, area })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                modalUsuario.hide();
+                cargarUsuarios();
+                if (!id && data.username && data.password) {
+                    $('#credUsername').text(data.username);
+                    $('#credPassword').text(data.password);
+                    const modalCred = new bootstrap.Modal(document.getElementById('modalCredenciales'));
+                    modalCred.show();
+                }
+            } else {
+                errorMensaje.textContent = data.error || 'Error al guardar usuario.';
+                errorMensaje.classList.remove('d-none');
+            }
+        });
+
+        // Confirmar eliminación
+        $('#btnConfirmarEliminar').click(async function () {
+            if (!eliminarId) return;
+            const res = await fetch(`/api/usuarios/${eliminarId}`, { method: 'DELETE' });
+            if (res.ok) {
+                modalEliminar.hide();
+                cargarUsuarios();
+            } else {
+                alert('Error al eliminar usuario.');
+            }
+        });
+
+        // Carga inicial
+        cargarUsuarios();
+    });
+</script>
+
+
+
+{% endblock %}

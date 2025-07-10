@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Consumo - WISP{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-primary mb-4">Administración de Queues</h2>
+
+    <!-- Botón para abrir el modal -->
+    <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#modalAgregar">+ Agregar
+        Queue</button>
+
+    <!-- Modal -->
+    <div class="modal fade" id="modalAgregar" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalLabel">Agregar Nueva Queue</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" class="form-control mb-2" id="nombre" placeholder="Nombre">
+                    <input type="text" class="form-control mb-2" id="ip" placeholder="IP (ej: 192.168.88.50/32)">
+                    <select class="form-select mb-2" id="up"></select>
+                    <select class="form-select mb-2" id="down"></select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarQueue()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mensaje"></div>
+
+    <table class="table table-bordered table-hover" id="tabla-queues">
+        <thead class="table-dark">
+            <tr>
+                <th>Nombre</th>
+                <th>IP</th>
+                <th>Upload</th>
+                <th>Download</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // Opciones con label y valor en bps (para envío)
+    const limitesOpciones = [
+        { value: '0', label: 'Sin límite' },
+        { value: '1000000', label: '1M' },
+        { value: '5000000', label: '5M' },
+        { value: '10000000', label: '10M' },
+        { value: '15000000', label: '15M' },
+        { value: '20000000', label: '20M' },
+        { value: '25000000', label: '25M' },
+        { value: '30000000', label: '30M' }
+    ];
+
+    // Mapa inverso para convertir label a valor (bps) al enviar al backend
+    const velocidadesMapInverse = {
+        'Sin límite': '0',
+        '1M': '1000000',
+        '5M': '5000000',
+        '10M': '10000000',
+        '15M': '15000000',
+        '20M': '20000000',
+        '25M': '25000000',
+        '30M': '30000000'
+    };
+
+    function mostrarMensaje(mensaje, tipo = 'success') {
+        Swal.fire({
+            icon: tipo === 'error' ? 'error' : (tipo === 'warning' ? 'warning' : 'success'),
+            title: mensaje,
+            showConfirmButton: false,
+            timer: 2000
+        });
+    }
+
+    // Crea select mostrando las etiquetas (labels) y selecciona la que corresponde
+    function crearSelect(valorActual, id, tipo) {
+        // Convertimos el valor (ej. "30000000") a su label correspondiente (ej. "30M")
+        const labelActual = Object.keys(velocidadesMapInverse).find(
+            label => velocidadesMapInverse[label] === valorActual
+        ) || 'Sin límite';
+
+        return `<select class="form-select form-select-sm" data-id="${id}" data-type="${tipo}">
+        ${limitesOpciones.map(opt =>
+            `<option value="${opt.label}" ${opt.label === labelActual ? 'selected' : ''}>${opt.label}</option>`
+        ).join('')}
+    </select>`;
+    }
+
+
+    async function cargarQueues() {
+        const res = await fetch('/api/queues');
+        const data = await res.json();
+        const tbody = document.querySelector('#tabla-queues tbody');
+        tbody.innerHTML = '';
+
+        data.data.forEach(q => {
+            let botonCorte = '';
+            if (q.estado === 'Cortado') {
+                botonCorte = `<button class="btn btn-success btn-sm" onclick="reconectarQueue('${q.target}')">Reconectar</button>`;
+            } else {
+                botonCorte = `<button class="btn btn-danger btn-sm" onclick="cortarQueue('${q.target}')">Cortar</button>`;
+            }
+
+            const badgeEstado = q.estado === 'Activo' ? 'success' : (q.estado === 'Cortado' ? 'danger' : 'secondary');
+
+            tbody.innerHTML += `
+                    <tr>
+                        <td>${q.name}</td>
+                        <td>${q.target}</td>
+                        <td>${crearSelect(q.upload_limit, q.id, 'upload')}</td>
+                        <td>${crearSelect(q.download_limit, q.id, 'download')}</td>
+                        <td><span class="badge bg-${badgeEstado}">${q.estado}</span></td>
+                        <td>
+                            <button class="btn btn-primary btn-sm" onclick="editarQueue('${q.id}')">Actualizar</button>
+                            <button class="btn btn-danger btn-sm" onclick="eliminarQueue('${q.id}')">Eliminar</button>
+                            ${botonCorte}
+                        </td>
+                    </tr>`;
+        });
+    }
+
+    async function guardarQueue() {
+        const nombre = document.getElementById('nombre').value.trim();
+        const ip = document.getElementById('ip').value.trim();
+        const upLabel = document.getElementById('up').value;
+        const downLabel = document.getElementById('down').value;
+
+        const up = velocidadesMapInverse[upLabel] || '0';
+        const down = velocidadesMapInverse[downLabel] || '0';
+
+        if (!nombre || !ip) {
+            mostrarMensaje('Nombre e IP son obligatorios', 'warning');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/queues/agregar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: nombre, target: ip, upload_limit: up, download_limit: down })
+            });
+            const data = await res.json();
+            if (data.status === 'ok') {
+                mostrarMensaje('Queue agregada correctamente');
+                cargarQueues();
+                document.getElementById('nombre').value = '';
+                document.getElementById('ip').value = '';
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalAgregar'));
+                modal.hide();
+            } else {
+                mostrarMensaje(data.error || 'Error al agregar', 'error');
+            }
+        } catch {
+            mostrarMensaje('Error en la solicitud', 'error');
+        }
+    }
+
+    async function editarQueue(id) {
+        const upLabel = document.querySelector(`select[data-id="${id}"][data-type="upload"]`).value;
+        const downLabel = document.querySelector(`select[data-id="${id}"][data-type="download"]`).value;
+
+        const up = velocidadesMapInverse[upLabel] || '0';
+        const down = velocidadesMapInverse[downLabel] || '0';
+
+        try {
+            const res = await fetch('/api/queues/editar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, upload_limit: up, download_limit: down })
+            });
+            const data = await res.json();
+            if (data.status === 'ok') {
+                mostrarMensaje('Queue actualizada');
+                cargarQueues();
+            } else {
+                mostrarMensaje(data.error || 'Error al actualizar', 'error');
+            }
+        } catch {
+            mostrarMensaje('Error en la solicitud', 'error');
+        }
+    }
+
+    async function eliminarQueue(id) {
+        const res = await fetch('/api/queues/eliminar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+            mostrarMensaje('Queue eliminada');
+            cargarQueues();
+        } else {
+            mostrarMensaje(data.error || 'Error al eliminar', 'error');
+        }
+    }
+
+    async function cortarQueue(ip) {
+        const res = await fetch('/api/queues/cortar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ip })
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+            mostrarMensaje(`Acceso de ${ip} cortado`, 'warning');
+            cargarQueues();
+        } else {
+            mostrarMensaje(data.error || 'Error al cortar', 'error');
+        }
+    }
+
+    async function reconectarQueue(ip) {
+        const res = await fetch('/api/queues/reconectar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ip })
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+            mostrarMensaje(`Acceso de ${ip} reconectado`, 'success');
+            cargarQueues();
+        } else {
+            mostrarMensaje(data.error || 'Error al reconectar', 'error');
+        }
+    }
+
+    function cargarOpcionesFormulario() {
+        const up = document.getElementById('up');
+        const down = document.getElementById('down');
+        // Agrega opciones con label visible y value igual al label
+        limitesOpciones.forEach(opt => {
+            up.innerHTML += `<option value="${opt.label}">${opt.label}</option>`;
+            down.innerHTML += `<option value="${opt.label}">${opt.label}</option>`;
+        });
+    }
+
+    cargarOpcionesFormulario();
+    cargarQueues();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}

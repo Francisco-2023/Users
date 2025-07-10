@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Contrato - WISP{% endblock %}
+
+{% block content %}
+<h1 class="mb-4 fw-bold text-primary">✏️ Editar Contrato</h1>
+                    </div>
+                    <div class="card-body p-4 bg-white rounded-bottom-5">
+                        <form method="POST" class="row g-6">
+                            <!-- Datos personales -->
+                            <div class="col-md-4">
+                                <label class="form-label">Contrato</label>
+                                <input type="text" name="numero_contrato" class="form-control" value="{{ contrato.numero_contrato }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Cédula</label>
+                                <input type="text" name="cedula" class="form-control" value="{{ contrato.cedula }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Teléfono</label>
+                                <input type="text" name="telefono" class="form-control" value="{{ contrato.telefono }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Nombres</label>
+                                <input type="text" name="nombres" class="form-control" value="{{ contrato.nombres }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Apellidos</label>
+                                <input type="text" name="apellidos" class="form-control" value="{{ contrato.apellidos }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" name="email" class="form-control" value="{{ contrato.email }}">
+                            </div>
+
+                            <!-- Dirección -->
+                            <div class="col-md-6">
+                                <label class="form-label">Dirección</label>
+                                <input type="text" name="direccion" class="form-control" value="{{ contrato.direccion }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">País</label>
+                                <input type="text" name="pais" class="form-control" value="{{ contrato.pais }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Provincia</label>
+                                <input type="text" name="provincia" class="form-control" value="{{ contrato.provincia }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Cantón</label>
+                                <input type="text" name="canton" class="form-control" value="{{ contrato.canton }}">
+                            </div>
+
+                            <!-- Ubicación -->
+                            <div class="col-md-6">
+                                <label class="form-label">Latitud</label>
+                                <input type="text" name="latitud" class="form-control" value="{{ contrato.latitud }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Longitud</label>
+                                <input type="text" name="longitud" class="form-control" value="{{ contrato.longitud }}">
+                            </div>
+
+                            <!-- Plan -->
+                            <div class="col-md-6">
+                                <label class="form-label">Plan Actual</label>
+                                <div class="form-control-plaintext">{{ contrato.plan_internet }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Seleccionar nuevo Plan</label>
+                                <select name="plan_internet" class="form-select">
+                                    <option value="Sin límite" {% if contrato.plan_internet=="Sin límite" %}selected{% endif %}>Sin límite</option>
+                                    <option value="1M" {% if contrato.plan_internet=="1M" %}selected{% endif %}>1M</option>
+                                    <option value="5M" {% if contrato.plan_internet=="5M" %}selected{% endif %}>5M</option>
+                                    <option value="10M" {% if contrato.plan_internet=="10M" %}selected{% endif %}>10M</option>
+                                    <option value="15M" {% if contrato.plan_internet=="15M" %}selected{% endif %}>15M</option>
+                                    <option value="20M" {% if contrato.plan_internet=="20M" %}selected{% endif %}>20M</option>
+                                    <option value="25M" {% if contrato.plan_internet=="25M" %}selected{% endif %}>25M</option>
+                                    <option value="30M" {% if contrato.plan_internet=="30M" %}selected{% endif %}>30M</option>
+                                </select>
+                            </div>
+
+                            <!-- Red -->
+                            <div class="col-md-4">
+                                <label class="form-label">IP Asignada</label>
+                                <input type="text" name="ip_asignada" class="form-control" value="{{ contrato.ip_asignada }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Máscara</label>
+                                <input type="text" name="mascara" class="form-control" value="{{ contrato.mascara }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Gateway</label>
+                                <input type="text" name="gateway" class="form-control" value="{{ contrato.gateway }}">
+                            </div>
+
+                            <!-- Botón -->
+                            <div class="col-12 d-grid mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg shadow-sm">💾 Guardar Cambios</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Pie -->
+                <div class="text-center mt-3 text-muted small">
+                    WISP © 2025
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+{% endblock %}

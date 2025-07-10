@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Escaneo de Puertos Mikrotik{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center mb-4"><i class="fas fa-network-wired me-2"></i>Escaneo de Puertos Mikrotik</h2>
+
+    <form method="POST" class="card p-4 shadow-sm border-0">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="host" class="form-label"><i class="fas fa-desktop me-1"></i>Selecciona una IP</label>
+                <select class="form-select" name="host" id="host" required>
+                    {% for ip in ips %}
+                        <option value="{{ ip }}" {% if ip == host %}selected{% endif %}>{{ ip }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-6">
+                <label for="ports" class="form-label"><i class="fas fa-plug-circle-bolt me-1"></i>Puertos a escanear</label>
+                <input type="text" class="form-control" name="ports" id="ports" value="{{ ports or '21,22,23,25,53,80,110,143,443,8080' }}" required>
+            </div>
+
+            <div class="col-12 d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search me-1"></i> Escanear
+                </button>
+            </div>
+        </div>
+    </form>
+
+    {% if warning %}
+    <div class="alert alert-warning mt-4 animate__animated animate__fadeIn">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ warning }}
+    </div>
+    {% endif %}
+
+    {% if results %}
+    <div class="mt-5">
+        <h4 class="mb-3">Resultados para <strong>{{ host }}</strong></h4>
+        <div class="row g-4">
+            {% for r in results %}
+                <div class="col-md-6 col-lg-4 animate__animated animate__fadeInUp">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body">
+                            <h5 class="card-title d-flex align-items-center">
+                                <i class="fas fa-plug me-2 {{ 'text-success' if r.status == 'open' else 'text-danger' }}"></i>
+                                Puerto {{ r.port }}
+                            </h5>
+                            <p class="card-text mb-1">
+                                Estado: 
+                                <strong class="{{ 'text-success' if r.status == 'open' else 'text-danger' }}">
+                                    {{ r.status|capitalize }}
+                                </strong>
+                            </p>
+                            <p class="text-muted small">{{ get_port_description(r.port) }}</p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Animate.css para animaciones -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+{% endblock %}

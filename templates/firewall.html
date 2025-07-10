@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+{% block title %}Reglas de Firewall{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h3 class="text-center mb-4 text-primary fw-bold">📡 Reglas de Firewall MikroTik</h3>
+
+    <div class="d-flex justify-content-end mb-4">
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalCrear">
+            ➕ Nueva Regla
+        </button>
+    </div>
+
+    {% if parsed_rules|length == 0 %}
+    <div class="alert alert-warning text-center">
+        No se encontraron reglas de firewall. Verifica la conexión con el MikroTik o si existen reglas configuradas.
+    </div>
+    {% endif %}
+
+    <div class="row">
+        {% for rule in parsed_rules %}
+        <div class="col-12 col-md-6 col-lg-4 mb-4 d-flex">
+            <div class="card shadow-sm rounded-4 flex-fill border-0" style="min-width: 0;">
+                <div class="card-body d-flex flex-column">
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title text-primary mb-0 d-flex align-items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor"
+                                class="bi bi-shield-lock me-2" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                                <path
+                                    d="M5.5 9a1.5 1.5 0 1 1 3 0v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 0-1 0v1a.5.5 0 0 1-1 0v-1z" />
+                                <path
+                                    d="M8 0c-.69 0-2.18.59-3.72 1.58C2.7 3.22 1.15 4.92 1.04 5a7.598 7.598 0 0 0 0 6c.11.08 1.66 1.78 3.24 3.42C6.02 15.41 7.46 16 8 16c.54 0 1.98-.59 3.72-1.58C13.3 12.78 14.85 11.08 14.96 11a7.598 7.598 0 0 0 0-6c-.11-.08-1.66-1.78-3.24-3.42C9.98.59 8.54 0 8 0zM8 1c.46 0 1.83.5 3.29 1.45C12.98 3.43 14.22 4.87 14.5 5a6.603 6.603 0 0 1 0 6c-.28.13-1.52 1.57-3.21 2.55C9.83 14.5 8.46 15 8 15c-.46 0-1.83-.5-3.29-1.45C3.02 11.57 1.78 10.13 1.5 10a6.603 6.603 0 0 1 0-6c.28-.13 1.52-1.57 3.21-2.55C6.17 1.5 7.54 1 8 1z" />
+                            </svg>
+                            Regla #{{ loop.index }}
+                        </h5>
+
+                        {% if rule.disabled is defined and rule.disabled %}
+                        <span class="badge bg-danger" aria-label="Regla desactivada">Desactivada</span>
+                        {% else %}
+                        <span class="badge bg-success" aria-label="Regla activa">Activa</span>
+                        {% endif %}
+                    </div>
+
+                    <ul class="list-group list-group-flush mb-3 small">
+                        <li class="list-group-item px-0 py-1 d-flex justify-content-between border-0">
+                            <span><strong>ID:</strong></span>
+                            <span>{% if rule.id is defined %}{{ rule.id }}{% else %}<span class="text-danger">No
+                                    disponible</span>{% endif %}</span>
+                        </li>
+                        <li class="list-group-item px-0 py-1 d-flex justify-content-between border-0">
+                            <span><strong>Cadena:</strong></span>
+                            <span>{{ rule.chain or 'N/A' }}</span>
+                        </li>
+                        <li class="list-group-item px-0 py-1 d-flex justify-content-between border-0">
+                            <span><strong>Acción:</strong></span>
+                            <span>{{ rule.action or 'N/A' }}</span>
+                        </li>
+                    </ul>
+
+                    <div class="collapse mt-auto" id="detalles{{ loop.index }}">
+                        <div class="bg-light p-3 rounded-3 border border-secondary-subtle shadow-sm">
+                            <ul class="list-group list-group-flush mb-2 small">
+                                <li class="list-group-item px-0 py-1 d-flex justify-content-between border-0">
+                                    <span><strong>Protocolo:</strong></span>
+                                    <span>{{ rule.protocol or 'N/A' }}</span>
+                                </li>
+                                <li class="list-group-item px-0 py-1 d-flex justify-content-between border-0">
+                                    <span><strong>Puerto destino (dst-port):</strong></span>
+                                    <span>{{ rule["dst-port"] if "dst-port" in rule else 'N/A' }}</span>
+                                </li>
+                                {% for key, value in rule.items() %}
+                                {% if key not in ['chain', 'action', 'protocol', 'disabled', 'comment', 'id',
+                                'dst-port'] %}
+                                <li class="list-group-item px-0 py-1 d-flex justify-content-between border-0">
+                                    <span><strong>{{ key|capitalize }}:</strong></span>
+                                    <span>{{ value }}</span>
+                                </li>
+                                {% endif %}
+                                {% endfor %}
+                            </ul>
+                            {% if rule.comment is defined and rule.comment %}
+                            <p class="fst-italic text-muted small mb-0">📝 {{ rule.comment }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse"
+                            data-bs-target="#detalles{{ loop.index }}" aria-expanded="false"
+                            aria-controls="detalles{{ loop.index }}" title="Ver detalles">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                class="bi bi-eye" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                                <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8z" />
+                                <path d="M8 5a3 3 0 1 1 0 6 3 3 0 0 1 0-6z" />
+                            </svg>
+                        </button>
+
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button class="btn btn-outline-primary btn-sm" onclick="abrirModal({{ loop.index0 }})"
+                                title="Editar regla">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                    class="bi bi-pencil" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                                    <path
+                                        d="M12.146.854a.5.5 0 0 1 .708 0l2.292 2.292a.5.5 0 0 1 0 .708L4.207 14.5H1v-3.207L12.146.854zM11.207 2.5L3 10.707V13h2.293L13.5 4.793 11.207 2.5z" />
+                                </svg>
+                            </button>
+
+                            {% if rule.id is defined %}
+                            <button class="btn btn-success btn-sm" onclick="activarRegla('{{ rule.id }}')"
+                                title="Activar regla">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                    class="bi bi-check-lg" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                                    <path
+                                        d="M13.485 1.929a.75.75 0 0 1 1.06 1.06L6.97 10.563 3.47 7.06a.75.75 0 0 1 1.06-1.06l2.44 2.44 6.515-6.512z" />
+                                </svg>
+                            </button>
+                            <button class="btn btn-warning btn-sm" onclick="desactivarRegla('{{ rule.id }}')"
+                                title="Desactivar regla">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                    class="bi bi-x-lg" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                                    <path
+                                        d="M2.146 2.146a.5.5 0 0 1 .708 0L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854a.5.5 0 0 1 0-.708z" />
+                                </svg>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="eliminarRegla('{{ rule.id }}')"
+                                title="Eliminar regla">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                    class="bi bi-trash" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                                    <path
+                                        d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm5 0A.5.5 0 0 1 11 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5z" />
+                                    <path fill-rule="evenodd"
+                                        d="M14.5 3a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1V2h13v1zm-11 1v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h-10z" />
+                                </svg>
+                            </button>
+                            {% else %}
+                            <span class="text-muted small align-self-center">Sin ID</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- Modal Crear Nueva Regla -->
+<div class="modal fade" id="modalCrear" tabindex="-1" aria-labelledby="modalCrearLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-success">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="modalCrearLabel">Crear Nueva Regla</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCrear">
+                    <div class="mb-3">
+                        <label for="new-chain" class="form-label">Cadena</label>
+                        <select class="form-select" id="new-chain" required>
+                            <option value="input">input</option>
+                            <option value="forward">forward</option>
+                            <option value="output">output</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-action" class="form-label">Acción</label>
+                        <select class="form-select" id="new-action" required>
+                            <option value="accept">accept</option>
+                            <option value="drop">drop</option>
+                            <option value="reject">reject</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-protocol" class="form-label">Protocolo</label>
+                        <select class="form-select" id="new-protocol">
+                            <option value="">(opcional)</option>
+                            <option value="tcp">tcp</option>
+                            <option value="udp">udp</option>
+                            <option value="icmp">icmp</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-dst-port" class="form-label">Puerto destino (dst-port)</label>
+                        <input type="number" class="form-control" id="new-dst-port" placeholder="Ej. 80" min="1"
+                            max="65535">
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-comment" class="form-label">Comentario (Descripción)</label>
+                        <textarea class="form-control" id="new-comment" rows="2"
+                            placeholder="Ej. Regla para bloquear puerto 80"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="crearRegla()">Crear</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Edición -->
+<div class="modal fade" id="modalEditar" tabindex="-1" aria-labelledby="modalEditarLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-primary">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalEditarLabel">Editar Regla de Firewall</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formEditar">
+                    <input type="hidden" id="edit-id">
+                    <div class="mb-3">
+                        <label for="edit-chain" class="form-label">Cadena</label>
+                        <select class="form-select" id="edit-chain">
+                            <option value="input">input</option>
+                            <option value="forward">forward</option>
+                            <option value="output">output</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-action" class="form-label">Acción</label>
+                        <select class="form-select" id="edit-action">
+                            <option value="accept">accept</option>
+                            <option value="drop">drop</option>
+                            <option value="reject">reject</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-protocol" class="form-label">Protocolo</label>
+                        <select class="form-select" id="edit-protocol">
+                            <option value="">(opcional)</option>
+                            <option value="tcp">tcp</option>
+                            <option value="udp">udp</option>
+                            <option value="icmp">icmp</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-dst-port" class="form-label">Puerto destino (dst-port)</label>
+                        <input type="number" class="form-control" id="edit-dst-port" placeholder="Ej. 80" min="1"
+                            max="65535">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-comment" class="form-label">Comentario (Descripción)</label>
+                        <textarea class="form-control" id="edit-comment" rows="2"
+                            placeholder="Ej. Regla para bloquear puerto 80"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarCambios()">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const reglas = {{ parsed_rules | tojson | safe }};
+
+    function abrirModal(index) {
+        const regla = reglas[index];
+        document.getElementById('edit-id').value = regla.id || '';
+        document.getElementById('edit-chain').value = regla.chain || '';
+        document.getElementById('edit-action').value = regla.action || '';
+        document.getElementById('edit-protocol').value = regla.protocol || '';
+        document.getElementById('edit-dst-port').value = regla["dst-port"] || '';
+        document.getElementById('edit-comment').value = regla.comment || '';
+        new bootstrap.Modal(document.getElementById('modalEditar')).show();
+    }
+
+    function guardarCambios() {
+        const id = document.getElementById('edit-id').value;
+        const data = {
+            id: id,
+            chain: document.getElementById('edit-chain').value,
+            action: document.getElementById('edit-action').value,
+            protocol: document.getElementById('edit-protocol').value || undefined,
+            comment: document.getElementById('edit-comment').value || undefined,
+        };
+        const dstPortValue = document.getElementById('edit-dst-port').value;
+        if (dstPortValue) data["dst-port"] = parseInt(dstPortValue);
+
+        fetch('/api/firewall/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).then(res => res.json()).then(result => {
+            alert(result.message);
+            location.reload();
+        });
+    }
+
+    function crearRegla() {
+        const data = {
+            chain: document.getElementById('new-chain').value,
+            action: document.getElementById('new-action').value,
+            protocol: document.getElementById('new-protocol').value || undefined,
+            comment: document.getElementById('new-comment').value || undefined,
+        };
+        const dstPortValue = document.getElementById('new-dst-port').value;
+        if (dstPortValue) data["dst-port"] = parseInt(dstPortValue);
+
+        fetch('/api/firewall/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).then(res => res.json()).then(result => {
+            alert(result.message);
+            location.reload();
+        });
+    }
+
+    function activarRegla(id) {
+        fetch('/api/firewall/enable', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id })
+        })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert("Error al activar: " + result.message);
+                }
+            });
+    }
+
+    function desactivarRegla(id) {
+        fetch('/api/firewall/disable', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id })
+        })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert("Error al desactivar: " + result.message);
+                }
+            });
+    }
+
+    function eliminarRegla(id) {
+        if (!confirm("¿Seguro que deseas eliminar esta regla? Esta acción no se puede deshacer.")) return;
+
+        fetch('/api/firewall/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id })
+        })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    alert("Regla eliminada correctamente.");
+                    location.reload();
+                } else {
+                    alert("Error al eliminar la regla: " + result.message);
+                }
+            });
+    }
+</script>
+{% endblock %}

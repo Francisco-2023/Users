@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}📤 Cuentas por Pagar{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="text-dark">📤 Cuentas por Pagar</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoModal">
+            ➕ Nueva Cuenta
+        </button>
+    </div>
+
+    <!-- Tabla con DataTables -->
+    <div class="table-responsive shadow rounded bg-white p-3">
+        <table id="tablaCuentas" class="table table-striped table-hover align-middle text-center">
+            <thead class="table-primary text-white">
+                <tr>
+                    <th><i class="fas fa-user-tie"></i> Proveedor</th>
+                    <th><i class="fas fa-file-alt"></i> Descripción</th>
+                    <th><i class="fas fa-dollar-sign"></i> Monto</th>
+                    <th><i class="fas fa-calendar-day"></i> Fecha Vencimiento</th>
+                    <th><i class="fas fa-info-circle"></i> Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cuenta in cuentas %}
+                <tr>
+                    <td>{{ cuenta.proveedor }}</td>
+                    <td class="text-start">{{ cuenta.descripcion }}</td>
+                    <td><strong>$ {{ '%.2f'|format(cuenta.monto) }}</strong></td>
+                    <td>{{ cuenta.fecha_vencimiento }}</td>
+                    <td>
+                        <span class="badge 
+                        {% if cuenta.estado == 'Pendiente' %}bg-danger
+                        {% elif cuenta.estado == 'Pagado' %}bg-success
+                        {% else %}bg-warning text-dark{% endif %}">
+                            {{ cuenta.estado }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- Modal para nueva cuenta -->
+<div class="modal fade" id="nuevoModal" tabindex="-1" aria-labelledby="nuevoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form method="POST" action="{{ url_for('nueva_cuenta_por_pagar') }}">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="nuevoModalLabel">➕ Nueva Cuenta por Pagar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Proveedor -->
+                    <div class="mb-3">
+                        <label class="form-label">Proveedor</label>
+                        <select name="proveedor" class="form-select" required>
+                            <option value="">Seleccione un proveedor</option>
+                            <option>Ufinet</option>
+                            <option>Netlife Empresas</option>
+                            <option>PuntoNet</option>
+                            <option>Claro Empresas</option>
+                            <option>CNT Corporativo</option>
+                            <option>Grupo TVCable</option>
+                            <option>EtapaNet</option>
+                            <option>Telconet</option>
+                            <option>Global Crossing</option>
+                            <option>Altala</option>
+                        </select>
+                    </div>
+
+                    <!-- Descripción -->
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <input type="text" name="descripcion" class="form-control" list="descripcion_opciones"
+                            placeholder="Ej: Pago mensual enlace dedicado">
+                        <datalist id="descripcion_opciones">
+                            <option>Pago mensual enlace dedicado</option>
+                            <option>Mantenimiento de fibra</option>
+                            <option>Instalación de punto adicional</option>
+                            <option>Reposición de equipo</option>
+                            <option>Renovación de servicio</option>
+                            <option>Pago de IP pública</option>
+                            <option>Trámite legal/contractual</option>
+                            <option>Incremento de ancho de banda</option>
+                            <option>Compra de materiales de red</option>
+                        </datalist>
+                    </div>
+
+                    <!-- Monto -->
+                    <div class="mb-3">
+                        <label class="form-label">Monto</label>
+                        <input type="number" name="monto" class="form-control" step="0.01" required>
+                    </div>
+
+                    <!-- Fecha de vencimiento -->
+                    <div class="mb-3">
+                        <label class="form-label">Fecha de Vencimiento</label>
+                        <input type="date" name="fecha_vencimiento" class="form-control" required>
+                    </div>
+
+                    <!-- Estado -->
+                    <div class="mb-3">
+                        <label class="form-label">Estado</label>
+                        <select name="estado" class="form-select">
+                            <option>Pendiente</option>
+                            <option>Pagado</option>
+                            <option>Atrasado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Scripts de DataTables -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $('#tablaCuentas').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+            },
+            pageLength: 10,
+            responsive: true
+        });
+    });
+</script>
+{% endblock %}

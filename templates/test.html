@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Test de Velocidad Mejorado{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3 class="mb-4 text-center">Test de Velocidad para IP Mikrotik o General</h3>
+
+    <div class="mb-3">
+        <label for="ip" class="form-label">Ingrese IP del servidor iperf3 (Opcional)</label>
+        <input type="text" id="ip" class="form-control" placeholder="Ej: 192.168.88.253 - Si se deja vacío, se usará Speedtest.net">
+    </div>
+
+    <button id="startTestBtn" class="btn btn-primary mb-4 w-100">Iniciar Test</button>
+
+    <div id="result" class="border rounded p-3 mb-4" style="min-height: 120px; white-space: pre-wrap; font-family: monospace;"></div>
+
+    <h5>Historial de Tests</h5>
+    <table class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>Fecha / Hora</th>
+                <th>IP / Tipo Test</th>
+                <th>Descarga (Mbps)</th>
+                <th>Subida (Mbps)</th>
+                <th>Ping (ms)</th>
+            </tr>
+        </thead>
+        <tbody id="historyBody">
+            <!-- Historial cargado por JS -->
+        </tbody>
+    </table>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const startBtn = document.getElementById('startTestBtn');
+    const resultDiv = document.getElementById('result');
+    const historyBody = document.getElementById('historyBody');
+
+    // Carga historial desde localStorage
+    let history = JSON.parse(localStorage.getItem('speedTestHistory') || '[]');
+    function renderHistory() {
+        historyBody.innerHTML = '';
+        if(history.length === 0) {
+            historyBody.innerHTML = '<tr><td colspan="5" class="text-center">No hay resultados previos.</td></tr>';
+            return;
+        }
+        history.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.date}</td>
+                <td>${item.ip || 'Speedtest.net'}</td>
+                <td>${item.download}</td>
+                <td>${item.upload}</td>
+                <td>${item.ping}</td>
+            `;
+            historyBody.appendChild(tr);
+        });
+    }
+    renderHistory();
+
+    startBtn.addEventListener('click', async () => {
+        const ip = document.getElementById('ip').value.trim();
+
+        resultDiv.textContent = 'Probando... Esto puede tardar unos segundos. Por favor espera.';
+
+        try {
+            const response = await fetch('/test', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ip})
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                const textResult = `Fecha: ${new Date().toLocaleString()}\n` +
+                                   `IP / Test: ${ip || 'Speedtest.net'}\n` +
+                                   `Descarga: ${data.download} Mbps\n` +
+                                   `Subida: ${data.upload} Mbps\n` +
+                                   `Ping: ${data.ping} ms\n\n` +
+                                   `Detalles:\n${JSON.stringify(data.raw, null, 2)}`;
+
+                resultDiv.textContent = textResult;
+
+                // Guardar en historial y mostrar
+                history.unshift({
+                    date: new Date().toLocaleString(),
+                    ip: ip,
+                    download: data.download,
+                    upload: data.upload,
+                    ping: data.ping
+                });
+                // Limitar a últimos 10 resultados
+                if(history.length > 10) history.pop();
+                localStorage.setItem('speedTestHistory', JSON.stringify(history));
+                renderHistory();
+
+            } else {
+                resultDiv.textContent = `Error: ${data.error}`;
+            }
+        } catch (err) {
+            resultDiv.textContent = 'Error en la solicitud: ' + err.message;
+        }
+    });
+</script>
+{% endblock %}

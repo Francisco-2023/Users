@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Resumen - WISP{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">📊 Dashboard Resumen de Red</h2>
+
+    <!-- Primera fila: tarjetas resumen -->
+    <div class="row g-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card shadow-sm text-white bg-primary h-100">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <h5 class="card-title">Interfaces Activas</h5>
+                    <p class="display-5">{{ interfaces_active }} / {{ interfaces_total }}</p>
+                    <small>Interfaces totales en el router</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card shadow-sm text-white bg-success h-100">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <h5 class="card-title">Clientes Conectados</h5>
+                    <p class="display-5">{{ clientes_conectados }}</p>
+                    <small>PPPoE / Hotspot activos</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card shadow-sm text-white bg-info h-100">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <h5 class="card-title">Tráfico Total</h5>
+                    <p class="display-6">{{ trafico_subida }} ↑ / {{ trafico_bajada }} ↓</p>
+                    <small>Última medición</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card shadow-sm text-white bg-warning h-100">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <h5 class="card-title">Reglas Firewall</h5>
+                    <p class="display-6">{{ reglas_activas }} activas</p>
+                    <small>Desactivadas: {{ reglas_desactivadas }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Segunda fila: tráfico en tiempo real ancho completo -->
+    <div class="row g-4 mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5>📈 Tráfico en Tiempo Real por Interfaz (Mbps)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="traficoChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tercera fila: CPU/Memoria, Clientes, Firewall (3 columnas iguales) -->
+    <div class="row g-4 mt-4">
+        <div class="col-lg-4 col-md-6">
+            <div class="card shadow-sm h-100 d-flex flex-column">
+                <div class="card-header">
+                    <h5>⚙️ Uso CPU y Memoria (%)</h5>
+                </div>
+                <div class="card-body flex-grow-1">
+                    <canvas id="cpuMemoriaChart" style="max-height: 250px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6">
+            <div class="card shadow-sm h-100 d-flex flex-column">
+                <div class="card-header">
+                    <h5>👥 Clientes PPPoE vs Hotspot</h5>
+                </div>
+                <div class="card-body flex-grow-1">
+                    <canvas id="clientesChart" style="max-height: 250px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-12">
+            <div class="card shadow-sm h-100 d-flex flex-column">
+                <div class="card-header">
+                    <h5>🔥 Resumen Firewall</h5>
+                </div>
+                <div class="card-body flex-grow-1">
+                    <canvas id="firewallChart" style="max-height: 250px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logs recientes -->
+    <div class="mt-5">
+        <h4>📝 Logs Recientes</h4>
+        <ul class="list-group" style="max-height: 300px; overflow-y: auto;">
+            {% for log in logs_recientes %}
+            <li class="list-group-item small">
+                <strong>{{ log.time }}</strong> - {{ log.message }}
+            </li>
+            {% else %}
+            <li class="list-group-item text-muted">No hay logs recientes</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<!-- Incluir Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const maxDataPoints = 30;
+
+    // --- Gráfico tráfico ---
+    const ctxTrafico = document.getElementById('traficoChart').getContext('2d');
+    const labelsTrafico = [];
+    const ifaceNames = [];
+    const dataTx = {};
+    const dataRx = {};
+    const colors = ['#3e95cd', '#8e5ea2', '#3cba9f', '#e8c3b9', '#c45850', '#ff6384', '#36a2eb', '#cc65fe'];
+    let traficoChart;
+
+    function bpsToMbps(bps) { return bps / 1e6; }
+
+    function crearTraficoChart() {
+        traficoChart = new Chart(ctxTrafico, {
+            type: 'line',
+            data: {
+                labels: labelsTrafico,
+                datasets: []
+            },
+            options: {
+                responsive: true,
+                interaction: { mode: 'nearest', intersect: false },
+                stacked: false,
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Mbps' } },
+                    x: { title: { display: true, text: 'Hora' } }
+                }
+            }
+        });
+    }
+
+    async function fetchTrafico() {
+        try {
+            const res = await fetch('/api/trafico_todas');
+            if (!res.ok) throw new Error('Error al obtener tráfico');
+            return await res.json();
+        } catch (e) {
+            console.error(e);
+            return {};
+        }
+    }
+
+    function updateTraficoChart(data) {
+        const now = new Date();
+        const timeLabel = now.toLocaleTimeString();
+
+        labelsTrafico.push(timeLabel);
+        if (labelsTrafico.length > maxDataPoints) labelsTrafico.shift();
+
+        Object.keys(data).forEach((iface, idx) => {
+            if (!ifaceNames.includes(iface)) {
+                ifaceNames.push(iface);
+                dataTx[iface] = Array(labelsTrafico.length - 1).fill(0);
+                dataRx[iface] = Array(labelsTrafico.length - 1).fill(0);
+
+                traficoChart.data.datasets.push({
+                    label: iface + ' TX (Mbps)',
+                    borderColor: colors[(idx * 2) % colors.length],
+                    backgroundColor: colors[(idx * 2) % colors.length],
+                    data: dataTx[iface],
+                    fill: false,
+                    tension: 0.3,
+                    borderWidth: 2,
+                });
+
+                traficoChart.data.datasets.push({
+                    label: iface + ' RX (Mbps)',
+                    borderColor: colors[(idx * 2 + 1) % colors.length],
+                    backgroundColor: colors[(idx * 2 + 1) % colors.length],
+                    data: dataRx[iface],
+                    fill: false,
+                    borderDash: [5, 5],
+                    tension: 0.3,
+                    borderWidth: 2,
+                });
+            }
+
+            dataTx[iface].push(bpsToMbps(data[iface].tx_bps));
+            if (dataTx[iface].length > maxDataPoints) dataTx[iface].shift();
+
+            dataRx[iface].push(bpsToMbps(data[iface].rx_bps));
+            if (dataRx[iface].length > maxDataPoints) dataRx[iface].shift();
+        });
+
+        traficoChart.data.labels = labelsTrafico;
+        traficoChart.options.scales.y.max = Math.max(
+            1,
+            ...traficoChart.data.datasets.flatMap(ds => ds.data)
+        ) * 1.2;
+
+        traficoChart.update();
+    }
+
+    // --- Gráfico CPU y Memoria ---
+    const ctxCpuMem = document.getElementById('cpuMemoriaChart').getContext('2d');
+    let cpuMemChart;
+
+    function crearCpuMemChart() {
+        cpuMemChart = new Chart(ctxCpuMem, {
+            type: 'doughnut',
+            data: {
+                labels: ['CPU %', 'Memoria %'],
+                datasets: [{
+                    data: [0, 0],
+                    backgroundColor: ['#36a2eb', '#ffcd56'],
+                    hoverOffset: 20,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: { enabled: true },
+                }
+            }
+        });
+    }
+
+    async function fetchCpuMem() {
+        try {
+            const res = await fetch('/api/cpu_memoria');
+            if (!res.ok) throw new Error('Error al obtener CPU/Memoria');
+            return await res.json();
+        } catch (e) {
+            console.error(e);
+            return { cpu: 0, memoria: 0 };
+        }
+    }
+
+    function updateCpuMemChart(data) {
+        cpuMemChart.data.datasets[0].data = [data.cpu, data.memoria];
+        cpuMemChart.update();
+    }
+
+    // --- Gráfico Clientes PPPoE vs Hotspot ---
+    const ctxClientes = document.getElementById('clientesChart').getContext('2d');
+    let clientesChart;
+
+    function crearClientesChart() {
+        clientesChart = new Chart(ctxClientes, {
+            type: 'pie',
+            data: {
+                labels: ['PPPoE', 'Hotspot'],
+                datasets: [{
+                    label: 'Clientes conectados',
+                    data: [0, 0],
+                    backgroundColor: ['#4bc0c0', '#ff6384'],
+                    hoverOffset: 20,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' },
+                }
+            }
+        });
+    }
+
+    async function fetchClientes() {
+        try {
+            const res = await fetch('/api/clientes_conectados');
+            if (!res.ok) throw new Error('Error al obtener clientes');
+            return await res.json();
+        } catch (e) {
+            console.error(e);
+            return { pppoe: 0, hotspot: 0 };
+        }
+    }
+
+    function updateClientesChart(data) {
+        clientesChart.data.datasets[0].data = [data.pppoe, data.hotspot];
+        clientesChart.update();
+    }
+
+    // --- Gráfico Resumen Firewall ---
+    const ctxFirewall = document.getElementById('firewallChart').getContext('2d');
+    let firewallChart;
+
+    function crearFirewallChart() {
+        firewallChart = new Chart(ctxFirewall, {
+            type: 'bar',
+            data: {
+                labels: ['Activas', 'Desactivadas'],
+                datasets: [{
+                    label: 'Reglas Firewall',
+                    data: [{{ reglas_activas }}, {{ reglas_desactivadas }}],
+                    backgroundColor: ['#198754', '#dc3545']
+                }]
+            },
+            options: {
+                responsive: true,
+                indexAxis: 'y',
+                scales: {
+                    x: { beginAtZero: true }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+
+    // Inicializar gráficos
+    crearTraficoChart();
+    crearCpuMemChart();
+    crearClientesChart();
+    crearFirewallChart();
+
+    // Actualizar periódicamente
+    async function actualizarDashboard() {
+        const traficoData = await fetchTrafico();
+        if (Object.keys(traficoData).length) updateTraficoChart(traficoData);
+
+        const cpuMemData = await fetchCpuMem();
+        updateCpuMemChart(cpuMemData);
+
+        const clientesData = await fetchClientes();
+        updateClientesChart(clientesData);
+
+        setTimeout(actualizarDashboard, 3000);
+    }
+
+    actualizarDashboard();
+});
+</script>
+{% endblock %}

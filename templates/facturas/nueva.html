@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}Nueva Factura{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <h2 class="mb-4 text-primary"><i class="fas fa-file-invoice-dollar me-2"></i>Nueva Factura</h2>
+
+  <form method="POST" action="{{ url_for('nueva_factura') }}">
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <label for="contrato_id" class="form-label fw-semibold">Cliente / Contrato</label>
+        <select name="contrato_id" id="contrato_id" class="form-select" required>
+          <option value="" selected disabled>Seleccione un cliente</option>
+          {% for c in contratos %}
+          <option value="{{ c[0] }}">{{ c[1] }} - {{ c[2] }} {{ c[3] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-6">
+        <label for="numero_factura" class="form-label fw-semibold">Número de Factura</label>
+        <input type="text" name="numero_factura" id="numero_factura" class="form-control fw-bold" 
+               value="{{ siguiente_numero }}" readonly>
+      </div>
+    </div>
+
+    <hr>
+
+    <h4 class="mb-3">Productos / Servicios</h4>
+    <table class="table table-bordered align-middle" id="tablaProductos">
+      <thead class="table-primary">
+        <tr>
+          <th style="width: 40%;">Producto</th>
+          <th style="width: 15%;">Cantidad</th>
+          <th style="width: 20%;">Precio Unitario</th>
+          <th style="width: 20%;">Subtotal</th>
+          <th style="width: 5%;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Filas dinámicas aquí -->
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3" class="text-end fs-5 fw-semibold">Total:</td>
+          <td id="totalFactura" class="fs-5 fw-bold text-primary">0.00</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+    <button type="button" class="btn btn-outline-primary mb-4" id="agregarProductoBtn">
+      <i class="fas fa-plus-circle me-2"></i> Agregar Producto
+    </button>
+
+    <div class="mb-4">
+      <label for="notas" class="form-label fw-semibold">Notas</label>
+      <textarea name="notas" id="notas" class="form-control" rows="4" placeholder="Notas o comentarios adicionales..."></textarea>
+    </div>
+
+    <div class="d-flex gap-3">
+      <button type="submit" class="btn btn-success btn-lg px-4">
+        <i class="fas fa-check-circle me-2"></i> Crear Factura
+      </button>
+      <a href="{{ url_for('ver_facturas') }}" class="btn btn-secondary btn-lg px-4">
+        <i class="fas fa-times-circle me-2"></i> Cancelar
+      </a>
+    </div>
+  </form>
+</div>
+
+<script>
+  const productos = {{ productos|tojson }};
+  const tbody = document.querySelector('#tablaProductos tbody');
+  const totalFactura = document.getElementById('totalFactura');
+
+  function actualizarTotal() {
+    let total = 0;
+    tbody.querySelectorAll('tr').forEach(row => {
+      const subtotalCell = row.querySelector('.subtotal');
+      if(subtotalCell) {
+        total += parseFloat(subtotalCell.textContent) || 0;
+      }
+    });
+    totalFactura.textContent = total.toFixed(2);
+  }
+
+  function crearFilaProducto() {
+    const tr = document.createElement('tr');
+
+    // Producto select
+    const tdProducto = document.createElement('td');
+    const select = document.createElement('select');
+    select.name = 'producto_id[]';
+    select.classList.add('form-select');
+    select.required = true;
+
+    const optionDefault = document.createElement('option');
+    optionDefault.value = '';
+    optionDefault.textContent = 'Seleccione producto';
+    optionDefault.disabled = true;
+    optionDefault.selected = true;
+    select.appendChild(optionDefault);
+
+    productos.forEach(p => {
+      const option = document.createElement('option');
+      option.value = p[0];
+      option.textContent = `${p[1]} ${p[2]} ${p[3]}`;
+      option.dataset.precio = p[4];  // precio unitario
+      select.appendChild(option);
+    });
+    tdProducto.appendChild(select);
+    tr.appendChild(tdProducto);
+
+    // Cantidad input
+    const tdCantidad = document.createElement('td');
+    const inputCantidad = document.createElement('input');
+    inputCantidad.type = 'number';
+    inputCantidad.name = 'cantidad[]';
+    inputCantidad.min = 1;
+    inputCantidad.value = 1;
+    inputCantidad.classList.add('form-control');
+    inputCantidad.required = true;
+    tdCantidad.appendChild(inputCantidad);
+    tr.appendChild(tdCantidad);
+
+    // Precio Unitario
+    const tdPrecio = document.createElement('td');
+    tdPrecio.classList.add('precio-unitario', 'text-end', 'fw-semibold');
+    tdPrecio.textContent = '0.00';
+    tr.appendChild(tdPrecio);
+
+    // Subtotal
+    const tdSubtotal = document.createElement('td');
+    tdSubtotal.classList.add('subtotal', 'text-end', 'fw-bold', 'text-primary');
+    tdSubtotal.textContent = '0.00';
+    tr.appendChild(tdSubtotal);
+
+    // Botón eliminar
+    const tdAcciones = document.createElement('td');
+    const btnEliminar = document.createElement('button');
+    btnEliminar.type = 'button';
+    btnEliminar.classList.add('btn', 'btn-danger', 'btn-sm');
+    btnEliminar.title = 'Eliminar producto';
+    btnEliminar.innerHTML = '<i class="fas fa-trash"></i>';
+    btnEliminar.addEventListener('click', () => {
+      tr.remove();
+      actualizarTotal();
+    });
+    tdAcciones.appendChild(btnEliminar);
+    tr.appendChild(tdAcciones);
+
+    // Eventos para actualizar precio y subtotal
+    select.addEventListener('change', () => {
+      const precio = parseFloat(select.selectedOptions[0].dataset.precio || 0);
+      tdPrecio.textContent = precio.toFixed(2);
+      const cantidad = parseInt(inputCantidad.value) || 1;
+      tdSubtotal.textContent = (precio * cantidad).toFixed(2);
+      actualizarTotal();
+    });
+
+    inputCantidad.addEventListener('input', () => {
+      const precio = parseFloat(select.selectedOptions[0].dataset.precio || 0);
+      const cantidad = parseInt(inputCantidad.value) || 0;
+      tdSubtotal.textContent = (precio * cantidad).toFixed(2);
+      actualizarTotal();
+    });
+
+    tbody.appendChild(tr);
+  }
+
+  document.getElementById('agregarProductoBtn').addEventListener('click', crearFilaProducto);
+
+  // Agregar una fila al cargar la página
+  crearFilaProducto();
+</script>
+
+<style>
+  /* Mejoras visuales y espaciamiento */
+  .form-label {
+    font-weight: 600;
+  }
+
+  table#tablaProductos tbody tr td {
+    vertical-align: middle;
+  }
+
+  /* Ajusta el ancho mínimo para select y inputs */
+  select.form-select, input.form-control {
+    min-width: 150px;
+  }
+
+  /* Botones de acción */
+  button.btn-danger i {
+    pointer-events: none;
+  }
+</style>
+{% endblock %}

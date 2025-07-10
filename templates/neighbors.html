@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Vecinos MikroTik{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="text-primary fw-bold mb-4 text-center">Vecinos MikroTik</h1>
+
+    {% if neighbors %}
+    <div class="card shadow-sm border-primary">
+        <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between">
+            <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i> Lista de Vecinos Detectados</h5>
+            <button class="btn btn-light btn-sm" onclick="location.reload()" title="Actualizar lista">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped align-middle mb-0">
+                    <thead class="table-primary text-primary text-center fs-6">
+                        <tr>
+                            <th style="min-width: 140px;">Nombre</th>
+                            <th style="min-width: 140px;">MAC</th>
+                            <th style="min-width: 120px;">IP</th>
+                            <th style="min-width: 120px;">Puerto</th>
+                            <th style="min-width: 130px;">Tipo</th>
+                            <th style="min-width: 90px;">Distancia</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for neighbor in neighbors %}
+                        <tr>
+                            <td class="text-start" title="{{ neighbor.identity | default('N/A') }}">
+                                <i class="bi bi-person-circle me-1"></i>
+                                {{ neighbor.identity | default('N/A') }}
+                            </td>
+                            <td class="text-monospace text-center" title="{{ neighbor['mac-address'] | default('N/A') }}">
+                                {{ neighbor['mac-address'] | default('N/A') }}
+                            </td>
+                            <td class="text-center" title="{{ neighbor.address | default('N/A') }}">
+                                {{ neighbor.address | default('N/A') }}
+                            </td>
+                            <td class="text-center" title="{{ neighbor.interface | default('N/A') }}">
+                                {{ neighbor.interface | default('N/A') }}
+                            </td>
+                            <td class="text-center" title="{{ neighbor.platform | default('N/A') }}">
+                                {{ neighbor.platform | default('N/A') }}
+                            </td>
+                            <td class="text-center text-nowrap">
+                                {% if neighbor.distance is defined and neighbor.distance %}
+                                    {{ neighbor.distance }} m
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center fs-5">
+        <i class="bi bi-info-circle me-2"></i> No se encontraron vecinos.
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+<script>
+    // Inicializar tooltips Bootstrap
+    document.querySelectorAll('[title]').forEach(el => {
+        new bootstrap.Tooltip(el);
+    });
+</script>
+{% endblock %}

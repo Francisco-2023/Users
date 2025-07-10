@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Consumo - WISP{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="text-primary mb-4">Consumo de Internet</h2>
+
+  <div id="alerta"></div>
+
+  <!-- Filtro por IP -->
+  <div class="mb-4 d-flex align-items-center gap-2">
+    <label for="inputIp" class="form-label mb-0 fw-semibold">Filtrar por IP:</label>
+    <input type="text" id="inputIp" class="form-control w-auto" placeholder="Ejemplo: 192.168.88.253">
+    <button id="btnFiltrar" class="btn btn-primary">Filtrar</button>
+    <button id="btnLimpiar" class="btn btn-secondary">Limpiar</button>
+  </div>
+
+  <!-- Gráfica de Consumo -->
+  <div class="card mb-4 shadow-sm rounded-4">
+    <div class="card-body">
+      <canvas id="graficoConsumo" height="100"></canvas>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle" id="tabla-consumo">
+      <thead class="table-dark">
+        <tr>
+          <th>Cliente</th>
+          <th>IP</th>
+          <th>Subida (MB)</th>
+          <th>Bajada (MB)</th>
+          <th>Total (MB)</th>
+          <th>Velocidad Actual</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+  let grafico = null;
+  let datosConsumo = [];
+  let ipFiltrada = ""; // <- aquí guardamos la IP que se está filtrando
+
+  async function cargarConsumo() {
+    try {
+      const res = await fetch('/api/consumo');
+      if (!res.ok) {
+        mostrarAlerta(`Error HTTP: ${res.status} ${res.statusText}`, 'danger');
+        return;
+      }
+      const data = await res.json();
+      if (data.error) {
+        mostrarAlerta(`Error API: ${data.error}`, 'danger');
+        return;
+      }
+
+      datosConsumo = data.data;
+      aplicarFiltro(); // <- aquí aplicamos el filtro al actualizar
+    } catch (err) {
+      mostrarAlerta(`Error cargando datos de consumo: ${err.message}`, 'danger');
+      console.error(err);
+    }
+  }
+
+  function aplicarFiltro() {
+    let datos = datosConsumo;
+    if (ipFiltrada) {
+      datos = datos.filter(item => item.target.includes(ipFiltrada));
+    }
+    mostrarDatos(datos);
+  }
+
+  function mostrarDatos(datos) {
+    const tbody = document.querySelector('#tabla-consumo tbody');
+    tbody.innerHTML = '';
+
+    const nombres = [];
+    const subidas = [];
+    const bajadas = [];
+
+    datos.forEach(item => {
+      const total = item.upload + item.download;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+    <td>${item.name}</td>
+    <td>${item.target}</td>
+    <td>${item.upload.toFixed(2)} MB</td>
+    <td>${item.download.toFixed(2)} MB</td>
+    <td>${total.toFixed(2)} MB</td>
+    <td>${item.rate === 'Sin tráfico' ? '<span class="text-muted">Sin tráfico</span>' : item.rate}</td>
+    `;
+      tbody.appendChild(tr);
+
+      nombres.push(item.name);
+      subidas.push(item.upload);
+      bajadas.push(item.download);
+    });
+
+    actualizarGrafico(nombres, subidas, bajadas);
+  }
+
+  function mostrarAlerta(mensaje, tipo = 'success') {
+    const alertaDiv = document.getElementById('alerta');
+    alertaDiv.innerHTML = `
+    <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
+      ${mensaje}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>`;
+  }
+
+  function actualizarGrafico(labels, subidas, bajadas) {
+    const ctx = document.getElementById('graficoConsumo').getContext('2d');
+    if (grafico) grafico.destroy();
+
+    grafico = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Subida (MB)',
+            data: subidas,
+            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+          },
+          {
+            label: 'Bajada (MB)',
+            data: bajadas,
+            backgroundColor: 'rgba(34, 197, 94, 0.6)',
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Megabytes'
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'top'
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false
+          }
+        }
+      }
+    });
+  }
+
+  // Botones de filtro
+  document.getElementById('btnFiltrar').addEventListener('click', () => {
+    const input = document.getElementById('inputIp').value.trim();
+    if (!input) {
+      mostrarAlerta('Ingresa una IP para filtrar', 'warning');
+      return;
+    }
+    ipFiltrada = input;
+    aplicarFiltro();
+  });
+
+  document.getElementById('btnLimpiar').addEventListener('click', () => {
+    document.getElementById('inputIp').value = '';
+    ipFiltrada = "";
+    aplicarFiltro();
+    mostrarAlerta('Filtro limpiado', 'success');
+  });
+
+  // Carga inicial
+  cargarConsumo();
+  setInterval(cargarConsumo, 10000); // Cada 10 segundos
+
+</script>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Test de Velocidad - Formulario{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <!-- FORMULARIO EN CARD -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="bi bi-hdd-network"></i> Test de Velocidad y Ping a Dispositivo Mikrotik</h5>
+        </div>
+        <div class="card-body">
+            <form id="testForm" method="POST" action="/test">
+                <div class="mb-3">
+                    <label for="ip" class="form-label fw-semibold">Dirección IP del dispositivo</label>
+                    <input type="text" id="ip" name="ip" class="form-control" required placeholder="Ej: 192.168.1.1"
+                        value="{{ ip or '' }}">
+                </div>
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="bi bi-play-circle"></i> Iniciar Test y Ping
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SPINNER OVERLAY (inicialmente oculto) -->
+    <div id="loadingOverlay" style="display:none;">
+        <div class="spinner"></div>
+        <div class="loading-text">Cargando, por favor espere</div>
+    </div>
+
+    {% if result %}
+    {% if result.error %}
+    <div class="alert alert-danger" role="alert">
+        <strong>Error:</strong> {{ result.error }}
+    </div>
+    {% else %}
+    <div class="row g-4">
+        <!-- Card Ping -->
+        <div class="col-md-6">
+            <div class="card border-primary shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-speedometer2"></i> Resultado Ping
+                </div>
+                <div class="card-body">
+                    <p class="card-text fs-5">
+                        <strong>Ping promedio:</strong>
+                        <span class="text-info">{{ result.ping_ms }} ms</span>
+                    </p>
+                    <details>
+                        <summary class="text-muted" style="cursor:pointer;">Ver detalle completo del ping</summary>
+                        <pre class="small bg-light p-2 rounded"
+                            style="max-height:200px; overflow:auto;">{{ result.raw_ping }}</pre>
+                    </details>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card Speedtest -->
+        <div class="col-md-6">
+            <div class="card border-success shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <i class="bi bi-wifi"></i> Resultado Test de Velocidad
+                </div>
+                <div class="card-body">
+                    <p class="card-text fs-5">
+                        <strong>Descarga:</strong>
+                        <span class="text-success">{{ result.download_mbps }} Mbps</span>
+                    </p>
+                    <p class="card-text fs-5">
+                        <strong>Subida:</strong>
+                        <span class="text-success">{{ result.upload_mbps }} Mbps</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+
+<script>
+    const overlay = document.getElementById('loadingOverlay');
+    const form = document.getElementById('testForm');
+
+    // Al cargar la página, ocultamos el overlay
+    window.addEventListener('load', () => {
+        overlay.style.display = 'none';
+    });
+
+    // Al enviar el formulario, mostramos el overlay
+    form.addEventListener('submit', () => {
+        overlay.style.display = 'flex';
+    });
+</script>
+{% endblock %}

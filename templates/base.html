@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}BraMonet - Panel{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css">
+    <!-- CSS de Select2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- JS de Select2 -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            overflow-x: hidden;
+        }
+
+        /* Estilos para que los botones tengan tamaño uniforme */
+        .btn-custom {
+            min-width: 140px;
+            height: 40px;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            box-shadow: 0 4px 8px rgb(0 0 0 / 0.1);
+            transition: all 0.3s ease;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-custom:hover {
+            box-shadow: 0 6px 14px rgb(0 0 0 / 0.15);
+            transform: translateY(-2px);
+        }
+
+        .descripcion-completa {
+            transition: max-height 0.3s ease;
+            overflow: hidden;
+        }
+
+        /* Tarjeta con sombra más profunda, transición y hover elegante */
+        .card-advanced {
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+        }
+
+        .card-advanced:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18);
+        }
+
+        /* Título con línea decorativa */
+        .card-title-advanced {
+            position: relative;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: #2563eb;
+            /* azul vivo */
+            padding-left: 30px;
+            margin-bottom: 1rem;
+        }
+
+        .card-title-advanced::before {
+            content: "🔐";
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.4rem;
+        }
+
+        /* Badges más suaves y modernos */
+        .badge-status {
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 0.4em 0.75em;
+            border-radius: 18px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .badge-status.activa {
+            background: #4ade80;
+            /* verde claro */
+            color: #166534;
+        }
+
+        .badge-status.desactivada {
+            background: #f87171;
+            /* rojo claro */
+            color: #7f1d1d;
+        }
+
+        /* Listas de detalles limpias */
+        .list-group-item-advanced {
+            background: transparent;
+            border: none;
+            padding-left: 0;
+            padding-right: 0;
+            padding-top: 0.2rem;
+            padding-bottom: 0.2rem;
+            font-size: 0.9rem;
+        }
+
+        .list-group-item-advanced strong {
+            color: #1e293b;
+        }
+
+        /* Comentario estilo tarjeta */
+        .comment-box {
+            background: #e0e7ff;
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            font-style: italic;
+            font-size: 0.85rem;
+            color: #3730a3;
+            margin-top: 0.75rem;
+            box-shadow: inset 0 0 6px #a5b4fc;
+        }
+
+        /* Botones: estilo minimalista y consistentes */
+        .btn-action {
+            border-radius: 6px;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-action svg {
+            stroke-width: 1.2;
+        }
+
+        .btn-action:focus {
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.5);
+        }
+
+        #terminal-icon {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #007bff;
+            /* azul principal */
+            color: white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            z-index: 1050;
+        }
+
+        #terminal-modal {
+            display: none;
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 450px;
+            height: 350px;
+            background: #121212;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
+            z-index: 1100;
+            flex-direction: column;
+            overflow: hidden;
+            font-family: monospace;
+            user-select: none;
+            /* para que no seleccione el texto al arrastrar */
+        }
+
+        #terminal-header {
+            background: #0056b3;
+            color: white;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+        }
+
+        #terminal-close {
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 20px;
+            line-height: 20px;
+        }
+
+        #terminal-console {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            color: #ddd;
+            background: #121212;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+
+        #terminal-input-container {
+            display: flex;
+            border-top: 1px solid #333;
+        }
+
+        #terminal-input {
+            flex: 1;
+            background: #121212;
+            border: none;
+            color: white;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            outline: none;
+        }
+
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 240px;
+            background: #1e40af;
+            box-shadow: 2px 0 12px rgb(0 0 0 / 0.1);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 1rem;
+            transition: width 0.3s ease;
+            z-index: 1000;
+        }
+
+        #sidebar .logo {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            text-align: center;
+            letter-spacing: 2px;
+            user-select: none;
+        }
+
+        #sidebar nav {
+            flex-grow: 1;
+        }
+
+        #sidebar .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #cbd5e1;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            cursor: pointer;
+            user-select: none;
+            margin-bottom: 8px;
+            text-decoration: none;
+        }
+
+        #sidebar .nav-link:hover {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        #sidebar .nav-link.active {
+            background-color: #3b82f6;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 0 10px #3b82f6aa;
+        }
+
+        #sidebar .nav-link i {
+            font-size: 18px;
+            width: 22px;
+            text-align: center;
+        }
+
+        #main-content {
+            margin-left: 240px;
+            padding: 2rem 2.5rem;
+            min-height: 100vh;
+            color: #1e293b;
+        }
+
+        @media (max-width: 768px) {
+            #sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                padding: 1rem 0.5rem;
+            }
+
+            #main-content {
+                margin-left: 0;
+                padding: 1.5rem 1rem;
+            }
+        }
+
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 240px;
+            background: #1e40af;
+            box-shadow: 2px 0 12px rgb(0 0 0 / 0.1);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 1rem;
+            transition: width 0.3s ease;
+            z-index: 1000;
+        }
+
+        #sidebar .logo {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            text-align: center;
+            letter-spacing: 2px;
+            user-select: none;
+        }
+
+        #sidebar nav {
+            flex-grow: 1;
+        }
+
+        #sidebar .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #cbd5e1;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            cursor: pointer;
+            user-select: none;
+            margin-bottom: 8px;
+            text-decoration: none;
+        }
+
+        #sidebar .nav-link:hover {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        #sidebar .nav-link.active {
+            background-color: #3b82f6;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 0 10px #3b82f6aa;
+        }
+
+        #sidebar .nav-link i {
+            font-size: 18px;
+            width: 22px;
+            text-align: center;
+        }
+
+        #main-content {
+            margin-left: 240px;
+            padding: 2rem 2.5rem;
+            min-height: 100vh;
+            color: #1e293b;
+        }
+
+        @media (max-width: 768px) {
+            #sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                padding: 1rem 0.5rem;
+            }
+
+            #main-content {
+                margin-left: 0;
+                padding: 1.5rem 1rem;
+            }
+        }
+
+        /* Fondo overlay */
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(20, 20, 30, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Fondo overlay */
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(20, 20, 30, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Spinner circular */
+        .spinner {
+            width: 80px;
+            height: 80px;
+            border: 10px solid transparent;
+            border-top: 10px solid #4f46e5;
+            /* Indigo */
+            border-bottom: 10px solid #a78bfa;
+            /* Light Indigo */
+            border-radius: 50%;
+            animation: spin 1.5s linear infinite;
+            box-shadow: 0 0 15px #a78bfa;
+        }
+
+        .submenu {
+            max-height: 0;
+            overflow: hidden;
+            padding-left: 10px;
+            transition: max-height 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+
+        .submenu.show {
+            max-height: 500px;
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* Estilo de las tarjetas */
+        .card {
+            border: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-body {
+            padding: 20px;
+            position: relative;
+        }
+
+        /* Estilo del estado */
+        .status-online {
+            color: #4caf50;
+            /* Verde brillante */
+            font-weight: bold;
+        }
+
+        .status-offline {
+            color: #f44336;
+            /* Rojo brillante */
+            font-weight: bold;
+        }
+
+        /* Separador para mejorar la organización */
+        .card-divider {
+            height: 1px;
+            background-color: #ddd;
+            margin: 15px 0;
+        }
+
+        /* Botón para acciones */
+        .btn-hotspot {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+            border: none;
+            padding: 10px 20px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .btn-hotspot:hover {
+            background-color: rgb(199, 217, 236);
+            transform: scale(1.1);
+        }
+
+        #logsContainer {
+            max-height: 400px;
+            /* Tamaño moderado del contenedor */
+            overflow-y: auto;
+            /* Barra de desplazamiento vertical */
+        }
+
+        .text-end {
+            margin-bottom: 20px;
+        }
+
+        /* Estilo para el botón "Ver" */
+        .btn-outline-red {
+            border-color: #f44336;
+            color: #f44336;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .btn-outline-red:hover {
+            background-color: #f44336;
+            color: white;
+        }
+
+        /* Animación giro */
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Texto de carga */
+        .loading-text {
+            color: #c7d2fe;
+            font-size: 1.3rem;
+            margin-top: 20px;
+            font-weight: 600;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Animación puntos suspensivos */
+        .loading-text::after {
+            content: '';
+            display: inline-block;
+            width: 1em;
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+
+            0%,
+            20% {
+                content: '';
+            }
+
+            40% {
+                content: '.';
+            }
+
+            60% {
+                content: '..';
+            }
+
+            80%,
+            100% {
+                content: '...';
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <aside id="sidebar" class="p-3 bg-blue border-end"
+        style="height: 100vh; overflow-y: auto; position: fixed; width: 250px;">
+
+        {% if session.get('username') %}
+        <!-- Usuario: botón y panel desplegable -->
+        <div class="text-center mb-3">
+            <button id="btnUserToggle" class="btn btn-outline-light rounded-circle shadow-sm"
+                style="width: 48px; height: 48px;">
+                <i class="fas fa-user"></i>
+            </button>
+
+            <div id="userInfoContent" class="bg-white border rounded shadow mt-2 p-3 mx-auto text-dark text-start"
+                style="max-width: 220px; display: none;">
+                <p class="mb-1 fw-semibold text-truncate" title="{{ session['username'] }}">
+                    <i class="fas fa-user me-2 text-primary"></i>{{ session['username'] }}
+                </p>
+                <p class="mb-2 text-secondary small">
+                    <i class="fas fa-user-tag me-2"></i>{{ session['rol'] }}
+                </p>
+                <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-danger w-100">
+                    <i class="fas fa-sign-out-alt me-1"></i> Cerrar sesión
+                </a>
+            </div>
+        </div>
+        <script>
+            document.getElementById('btnUserToggle').addEventListener('click', function () {
+                const content = document.getElementById('userInfoContent');
+                content.style.display = (content.style.display === 'none' || content.style.display === '') ? 'block' : 'none';
+            });
+        </script>
+        {% endif %}
+
+        <!-- Logo -->
+        <div class="logo fw-bold fs-5 text-center text-white mb-3">WISP</div>
+
+        <!-- Navegación principal -->
+        <nav class="nav flex-column">
+            <a href="/" class="nav-link text-white"><i class="fas fa-home me-2"></i> Inicio</a>
+
+            {% set menus = [
+            ('Administración', 'fas fa-user-cog', [
+            ('/clientes', 'Clientes'),
+            ('/contratos', 'Contratos'),
+            ('/pago', 'Pagos'),
+            ('/usuarios', 'Usuarios / Empleados'),
+            ('/inventario', 'Inventario'),
+            ('/facturas/lista', 'Facturación'),
+            ('/ticket', 'Soporte / Tickets'),
+            ('/configuracion', 'Configuración')
+            ]),
+            ('Finanzas', 'fas fa-chart-line', [
+            ('/resumen_financiero', 'Resumen Financiero'),
+            ('/cuentas_por_cobrar', 'Cuentas por Cobrar'),
+            ('/cuentas_por_pagar', 'Cuentas por Pagar'),
+            ('/caja_bancos', 'Caja y Bancos'),
+            ('/presupuestos', 'Presupuestos / Proyecciones'),
+            ('/gastos', 'Gastos Generales'),
+            ('/reportes_financieros', 'Reportes Financieros'),
+            ('/gestion_impuestos', 'Gestión de Impuestos')
+            ]),
+            ('Red', 'fas fa-network-wired', [
+            ('/queues', 'Queues'),
+            ('/dhcp', 'DHCP'),
+            ('/hotspot', 'Hotspot'),
+            ('/log', 'Log'),
+            ('/neighbors', 'Neighbors'),
+            ('/firewall', 'Firewall')
+            ]),
+            ('Diagnóstico', 'fas fa-tools', [
+            ('/test', 'Test de Velocidad'),
+            ('/consumo', 'Consumo')
+            ]),
+            ('Herramientas', 'fas fa-wrench', [
+            (url_for('tool_ping'), 'Ping'),
+            ('/tools/portscan', 'Escaneo de Puertos'),
+            ('/tools/geoip', 'GeoIP'),
+            ('/tools/dnslookup', 'DNS Lookup'),
+            ('/tools/whois_page', 'WHOIS')
+            ])
+            ] %}
+
+            {% for titulo, icono, items in menus %}
+            <div class="mb-2">
+                <button
+                    class="btn w-100 text-start nav-link d-flex justify-content-between align-items-center text-white has-submenu collapsed"
+                    data-bs-toggle="collapse" data-bs-target="#submenu{{ loop.index }}" aria-expanded="false">
+                    <span><i class="{{ icono }} me-2"></i>{{ titulo }}</span>
+                    <i class="fas fa-chevron-down small"></i>
+                </button>
+                <div id="submenu{{ loop.index }}" class="collapse submenu">
+                    {% for link, texto in items %}
+                    <a href="{{ link }}" class="nav-link ps-4 text-white-50 small">{{ texto }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </nav>
+    </aside>
+
+
+    <div id="terminal-icon" title="Abrir Terminal">
+        &gt;_
+    </div>
+
+    <div id="terminal-modal" role="dialog" aria-modal="true" aria-labelledby="terminal-header">
+        <div id="terminal-header">
+            <span>Terminal MikroTik</span>
+            <span id="terminal-close" title="Cerrar Terminal">&times;</span>
+        </div>
+        <div id="terminal-console" tabindex="0"></div>
+        <div id="terminal-input-container">
+            <input id="terminal-input" autocomplete="off" placeholder="Escribe un comando y presiona Enter" />
+        </div>
+    </div>
+
+
+
+    <main id="main-content">
+        {% block content %}
+        <!-- Aquí va el contenido de cada página -->
+        {% endblock %}
+
+        <footer class="mt-5 text-center text-muted" style="font-size: 0.9rem;">
+            &copy; 2025 WISP. Todos los derechos reservados.
+        </footer>
+    </main>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        const terminalIcon = document.getElementById('terminal-icon');
+        const terminalModal = document.getElementById('terminal-modal');
+        const terminalClose = document.getElementById('terminal-close');
+        const terminalConsole = document.getElementById('terminal-console');
+        const terminalInput = document.getElementById('terminal-input');
+        const terminalHeader = document.getElementById('terminal-header');
+
+        let commandHistory = [];
+        let historyIndex = -1;
+
+        // Mostrar/ocultar terminal
+        terminalIcon.addEventListener('click', () => {
+            if (terminalModal.style.display === 'flex') {
+                terminalModal.style.display = 'none';
+            } else {
+                terminalModal.style.display = 'flex';
+                terminalInput.focus();
+            }
+        });
+
+        terminalClose.addEventListener('click', () => {
+            terminalModal.style.display = 'none';
+        });
+
+        // Función para imprimir en consola
+        function printToConsole(text, isCommand = false) {
+            const line = document.createElement('div');
+            line.innerHTML = isCommand
+                ? `<span style="color:#0f0;">admin@mikrotik:~$</span> ${text}`
+                : text;
+            terminalConsole.appendChild(line);
+            terminalConsole.scrollTop = terminalConsole.scrollHeight;
+        }
+
+        // Ejecutar comando
+        async function runCommand(command) {
+            printToConsole(command, true);
+            try {
+                const response = await fetch('/api/terminal/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command })
+                });
+                const data = await response.json();
+                const output = data.output
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/\n/g, "<br>")
+                    .replace(/\s/g, "&nbsp;");
+                printToConsole(output);
+            } catch (err) {
+                printToConsole(`<span style="color:#f00;">Error: ${err.message}</span>`);
+            }
+        }
+
+        // Manejo del input y navegación historial
+        terminalInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const command = terminalInput.value.trim();
+                if (command) {
+                    runCommand(command);
+                    commandHistory.push(command);
+                    historyIndex = commandHistory.length;
+                    terminalInput.value = '';
+                }
+                e.preventDefault();
+            }
+
+            if (e.key === 'ArrowUp') {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    terminalInput.value = commandHistory[historyIndex] || '';
+                }
+                e.preventDefault();
+            }
+
+            if (e.key === 'ArrowDown') {
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    terminalInput.value = commandHistory[historyIndex] || '';
+                } else {
+                    terminalInput.value = '';
+                }
+                e.preventDefault();
+            }
+        });
+
+        // Hacer la terminal draggable (movible)
+        terminalHeader.style.cursor = 'move';
+
+        let isDragging = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        terminalHeader.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            const rect = terminalModal.getBoundingClientRect();
+            dragOffsetX = e.clientX - rect.left;
+            dragOffsetY = e.clientY - rect.top;
+            document.body.style.userSelect = 'none'; // evitar selección mientras arrastras
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+            document.body.style.userSelect = '';
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            let left = e.clientX - dragOffsetX;
+            let top = e.clientY - dragOffsetY;
+
+            // Limitar dentro de la ventana
+            const maxLeft = window.innerWidth - terminalModal.offsetWidth;
+            const maxTop = window.innerHeight - terminalModal.offsetHeight;
+
+            if (left < 0) left = 0;
+            else if (left > maxLeft) left = maxLeft;
+
+            if (top < 0) top = 0;
+            else if (top > maxTop) top = maxTop;
+
+            terminalModal.style.left = left + 'px';
+            terminalModal.style.top = top + 'px';
+            terminalModal.style.bottom = 'auto'; // para no chocar con bottom fijo
+            terminalModal.style.right = 'auto';  // para no chocar con right fijo
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+    <script>
+        // Activar link del menú según la URL actual
+        const links = document.querySelectorAll('#sidebar .nav-link');
+        const path = window.location.pathname;
+        links.forEach(link => {
+            if (link.getAttribute('href') === path) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+    </script>
+    <script>
+        document.querySelectorAll('.has-submenu').forEach(link => {
+            link.addEventListener('click', e => {
+                e.preventDefault();
+                const submenu = link.nextElementSibling;
+                submenu.classList.toggle('show');
+
+                // Opcional: cerrar otros
+                document.querySelectorAll('.submenu').forEach(other => {
+                    if (other !== submenu) other.classList.remove('show');
+                });
+            });
+        });
+    </script>
+
+</body>
+
+</html>
