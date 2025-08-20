@@ -31,3 +31,34 @@
 /ip service enable winbox
 /ip service enable www
 /ip service enable ssh
+
+# Habilitar el servidor PPPoE en la interfaz WAN
+/interface pppoe-server server
+add service-name=PPPoE-ISP interface=ether1 disabled=no one-session-per-host=yes
+
+# Crear perfiles PPPoE (planes)
+/ppp profile
+add name=PLAN_2M local-address=10.0.0.1 remote-address=pool_2M rate-limit=2M/2M
+add name=PLAN_5M local-address=10.0.0.1 remote-address=pool_5M rate-limit=5M/5M
+add name=PLAN_10M local-address=10.0.0.1 remote-address=pool_10M rate-limit=10M/10M
+
+# 🔹 Crear pools de IP
+/ip pool
+add name=pool_2M ranges=10.0.2.2-10.0.2.254
+add name=pool_5M ranges=10.0.5.2-10.0.5.254
+add name=pool_10M ranges=10.0.10.2-10.0.10.254
+add name=pool_20M ranges=10.0.20.2-10.0.20.254
+
+# 🔹 Crear perfiles PPPoE asociados a cada pool
+/ppp profile
+add name="Plan Básico" rate-limit="10M/2M" local-address=10.0.2.1 remote-address=pool_2M
+add name="Plan Hogar" rate-limit="20M/5M" local-address=10.0.5.1 remote-address=pool_5M
+add name="Plan Avanzado" rate-limit="50M/10M" local-address=10.0.10.1 remote-address=pool_10M
+add name="Plan Full" rate-limit="100M/20M" local-address=10.0.20.1 remote-address=pool_20M
+
+/interface pppoe-server server
+add disabled=no interface=bridge1 service-name=service1
+add disabled=no interface=ether1 one-session-per-host=yes service-name=PPPoE-ISP
+add authentication=pap,chap disabled=no interface=bridge1 service-name=pppoe-server1
+
+/ppp profile set [find name="Plan Hogar"] track-bytes=yes

@@ -1,6 +1,6 @@
 from flask import Flask, render_template, redirect, url_for, flash, current_app, session
 import subprocess, socket, requests, dns.resolver, whois, speedtest
-from routeros_api import RouterOsApiPool
+from routeros_api import RouterOsApiPool, exceptions
 from flask import request, jsonify
 import platform
 from functools import wraps
@@ -13,6 +13,7 @@ from werkzeug.utils import secure_filename
 from datetime import date
 from datetime import datetime
 from psycopg2.extras import RealDictCursor
+from utils_pppoe import generar_password, crear_usuario_pppoe
 import calendar
 import json
 import speedtest
@@ -1013,6 +1014,347 @@ def crear_contrato():
     pool.disconnect()
 
     return redirect('/contratos')
+
+
+def crear_usuario_pppoe(usuario, password, perfil, pool):
+    try:
+        _, api = conectar_api()  # api es un objeto RouterOsApi
+        ppp_secret = api.get_resource('/ppp/secret')  # Obtenemos el recurso PPP secret
+
+        # Agregar usuario PPPoE
+        ppp_secret.add(
+            name=usuario,
+            password=password,
+            profile=perfil,
+            service="pppoe"
+        )
+
+        # Si quieres leer IP, máscara o gateway, normalmente debes
+        # consultarlo desde el pool o desde la interfaz, no se asigna automáticamente aquí.
+        return True, "Usuario creado correctamente", None, None, None
+    except Exception as e:
+        return False, str(e), None, None, None
+
+
+@app.route('/contratos/crear_pppoe', methods=['GET', 'POST'])
+def crear_contrato_pppoe():
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    # 🔹 Sectores
+    cur.execute("SELECT id, nombre_sector, mikrotik_pool FROM sectores ORDER BY nombre_sector ASC;")
+    sectores = cur.fetchall()
+
+    # 🔹 Planes
+    cur.execute("SELECT id, nombre FROM planes ORDER BY nombre ASC;")
+    planes = cur.fetchall()
+
+    # 🔹 Leer perfiles PPPoE desde MikroTik
+    try:
+        pool, api = conectar_api()
+        perfiles_pppoe = []
+        if api:
+            perfiles = api.get_resource('/ppp/profile').get()
+            print([p['name'] for p in perfiles])
+            perfiles_pppoe = [p['name'] for p in perfiles]
+    except Exception as e:
+        perfiles_pppoe = []
+        flash(f"No se pudieron leer perfiles PPPoE de MikroTik: {e}", "danger")
+    
+    # Provincias y cantones
+    provincias_cantones = {
+         "AZUAY": ["CUENCA", "GIRÓN", "GUALACEO", "NABÓN", "PAUTE", "PUCARA", "SAN FERNANDO", "SANTA ISABEL", "SIGSIG", "OÑA", "CHORDELEG", "EL PAN", "SEVILLA DE ORO", "GUACHAPALA", "CAMILO PONCE ENRÍQUEZ"],
+            "BOLÍVAR": ["GUARANDA", "CHILLANES", "CHIMBO", "ECHEANDIA", "SAN MIGUEL", "CALUMA", "LAS NAVES"],
+            "CAÑAR": ["AZOGUES", "BIBLIÁN", "CAÑAR", "LA TRONCAL", "EL TAMBO", "DELEG", "SUSCAL"],
+            "CARCHI": ["TULCÁN", "BOLÍVAR", "ESPEJO", "MIRA", "MONTÚFAR", "SAN PEDRO DE HUACA"],
+            "COTOPAXI": ["LATACUNGA", "LA MANÁ", "PANGUA", "PUJILÍ", "SALCEDO", "SAQUISILÍ", "SIGCHOS", "RIAUORAMBA"],
+            "CHIMBORAZO": ["RIOBAMBA", "ALAUSÍ", "COLTA", "CHAMBO", "CHUNCHI", "GUAMOTE", "GUANO", "PALLATANGA", "PENIPE", "CUMANDÁ"],
+            "EL ORO": ["MACHALA", "ARENILLAS", "ATAHUALPA", "BALSAS", "CHILLA", "EL GUABO", "HUAQUILLAS", "MARCABELI", "PASAJE", "PIÑAS", "PORTOVELO", "SANTA ROSA", "ZARUMA", "LAS LAJAS"],
+            "ESMERALDAS": ["ESMERALDAS", "ELOY ALFARO", "MUISNE", "QUININDÉ", "SAN LORENZO", "ATACAMES", "RIOVERDE"],
+            "GUAYAS": ["GUAYAQUIL", "ALFREDO BAQUERIZO MORENO", "BALAO", "BALZAR", "COLIMES", "DAULE", "DURÁN", "EMPALME", "EL TRIUNFO", "MILAGRO", "NARANJAL", "NARANJITO", "PALESTINA", "PEDRO CARBO", "SAMBORONDÓN", "SANTA LUCÍA", "SALITRE"],
+            "IMBABURA": ["IBARRA", "ANTONIO ANTE", "COTACACHI", "OTAVALO", "PIMAMPIRO", "SAN MIGUEL DE URCUQUÍ"],
+            "LOJA": ["LOJA", "CALVAS", "CATAMAYO", "CELICA", "CHAGUARPAMBA", "ESPÍNDOLA", "GONZANAMÁ", "MACARÁ", "PALTAS", "PUYANGO", "SARAGURO", "SOZORANGA", "ZAPOTILLO", "PINDAL", "QUILANGA", "OLMEDO"],
+            "LOS RÍOS": ["BABAHOYO", "BABA", "MONTALVO", "PUEBLOVIEJO", "QUEVEDO", "URDANETA", "VENTANAS", "VINCES", "PALENQUE", "BUENA FÉ", "QUINSALOMA"],
+            "MANABÍ": ["PORTOVIEJO", "BOLÍVAR", "CHONE", "EL CARMEN", "FLAVIO ALFARO", "JIPIJAPA", "JUNÍN", "MANTA", "MONTECRISTI", "PAJÁN", "PEDERNALES", "OLMEDO", "PUERTO LÓPEZ", "JAMA", "JARAMIJÓ", "SAN VICENTE"],
+            "MORONA SANTIAGO": ["MORONA", "GUALAQUIZA", "LIMÓN INDANZA", "PALORA", "SANTIAGO", "SUCUA", "HUAMBOYA", "SAN JUAN BOSCO", "TAISHA", "LOGROÑO", "PABLO SEXTO", "TAISLEO"],
+            "NAPO": ["TENA", "ARCHIDONA", "EL CHACO", "QUIJOS", "CARLOS JULIO AROSEMENA TOLA"],
+            "PASTAZA": ["PASTAZA", "MERA", "SANTA CLARA", "ARAJUNO"],
+            "PICHINCHA": ["QUITO", "CAYAMBE", "MEJÍA", "PEDRO MONCAYO", "RUMINAHUI", "SAN MIGUEL DE LOS BANCOS", "PEDRO VICENTE MALDONADO", "PUERTO QUITO"],
+            "TUNGURAHUA": ["AMBATO", "BAÑOS DE AGUA SANTA", "CEVALLOS", "MOCHA", "PATATE", "QUERO", "SAN PEDRO DE PELILEO", "SANTIAGO DE PILLARO", "TISALEO"],
+            "ZAMORA CHINCHIPE": ["ZAMORA", "CHINCHIPE", "NANGARITZA", "YACUAMBI", "YANTZAZA", "EL PANGUI", "CENTINELA DEL CONDOR", "PALANDA", "PAQUISHA"],
+            "GALÁPAGOS": ["SAN CRISTÓBAL", "ISABELA", "SANTA CRUZ"],
+            "SUCUMBÍOS": ["LAGO AGRIO", "GONZALO PIZARRO", "PUTUMAYO", "SHUSHUFINDI", "SUCUMBÍOS", "CASCALLES", "CUYABENO"],
+            "ORELLANA": ["ORELLANA", "AGUARICO", "LA JOYA DE LOS SACHAS", "LORETO"],
+            "SANTO DOMINGO DE LOS TSÁCHILAS": ["SANTO DOMINGO", "LA CONCORDIA"],
+            "SANTA ELENA": ["SANTA ELENA", "LA LIBERTAD", "SALINAS"],
+            "ZONA NO DELIMITADA": ["LAS GOLONDRINAS", "MANGA DEL CURA", "EL PIEDRERO"]
+    }
+
+    if request.method == 'GET':
+        return render_template(
+            'contratos_pppoe.html',
+            sectores=sectores,
+            planes=planes,
+            provincias=provincias_cantones,
+            perfiles=perfiles_pppoe
+        )
+
+    # POST
+    data = request.form
+    campos_obl = [
+        'nombres', 'apellidos', 'cedula', 'direccion',
+        'sector_id', 'plan_id', 'provincia', 'canton', 'fecha_corte'
+    ]
+    faltantes = [c for c in campos_obl if not data.get(c)]
+    if faltantes:
+        flash(f"Faltan campos obligatorios: {', '.join(faltantes)}", "warning")
+        return redirect(url_for('crear_contrato_pppoe'))
+
+    # 🔹 Datos del formulario
+    nombres = data.get('nombres').strip()
+    apellidos = data.get('apellidos').strip()
+    cedula = data.get('cedula').strip()
+    direccion = data.get('direccion').strip()
+    sector_id = int(data.get('sector_id'))
+    plan_id = int(data.get('plan_id'))
+    provincia = data.get('provincia')
+    canton = data.get('canton')
+
+    # 🔹 Fechas
+    try:
+        fecha_corte = datetime.strptime(data.get('fecha_corte'), "%Y-%m-%d").date()
+    except Exception:
+        flash("Fecha de corte inválida", "danger")
+        return redirect(url_for('crear_contrato_pppoe'))
+    fecha_inicio = date.today()
+    fecha_fin = None
+    fecha_suspension = None
+
+    # 🔹 Opcionales
+    email = data.get('email') or None
+    telefono = data.get('telefono') or None
+    pais = data.get('pais') or "Ecuador"
+    latitud = data.get('latitud') or None
+    longitud = data.get('longitud') or None
+    imagen_domicilio = data.get('imagen_domicilio') or None
+
+    # 🔹 Leer sector y plan
+    cur.execute("SELECT id, mikrotik_pool FROM sectores WHERE id=%s", (sector_id,))
+    sector = cur.fetchone()
+    if not sector:
+        conn.close()
+        flash("Sector no encontrado", "danger")
+        return redirect(url_for('crear_contrato_pppoe'))
+    pool_nombre = sector['mikrotik_pool']
+
+    cur.execute("SELECT id, nombre FROM planes WHERE id=%s", (plan_id,))
+    plan = cur.fetchone()
+    if not plan:
+        conn.close()
+        flash("Plan no encontrado", "danger")
+        return redirect(url_for('crear_contrato_pppoe'))
+    plan_nombre = plan['nombre']
+
+    # 🔹 Validar perfil PPPoE
+    perfil_real = next((p for p in perfiles_pppoe if p.lower() == plan_nombre.lower()), None)
+    if not perfil_real:
+        flash(f"Perfil PPPoE '{plan_nombre}' no existe en MikroTik", "danger")
+        return redirect(url_for('crear_contrato_pppoe'))
+
+    # 🔹 Generar usuario y contraseña PPPoE
+    usuario_pppoe = f"{nombres.lower()}_{cedula}"
+    password_pppoe = generar_password(10)
+
+    # 🔹 Crear usuario en MikroTik
+    try:
+        ppp_secret = api.get_resource('/ppp/secret')
+        ppp_secret.add(
+            name=usuario_pppoe,
+            password=password_pppoe,
+            profile=perfil_real,
+            service="pppoe"
+        )
+        flash(f"Usuario PPPoE '{usuario_pppoe}' creado en MikroTik", "success")
+
+        # 🔹 Intentar obtener IP asignada si ya se conectó
+        try:
+            ppp_active = api.get_resource('/ppp/active')
+            usuario_activo = next((u for u in ppp_active.get() if u['name'] == usuario_pppoe), None)
+            if usuario_activo:
+                ip_asignada = usuario_activo['address']
+                mascara = "24"
+                gateway = usuario_activo.get('caller-id', None)
+            else:
+                ip_asignada, mascara, gateway = None, None, None
+        except Exception as e_active:
+            flash(f"No se pudo obtener la IP asignada: {e_active}", "warning")
+            ip_asignada, mascara, gateway = None, None, None
+
+        # 🔹 Guardar en SQL
+        try:
+            cur.execute("""
+                INSERT INTO usuarios_pppoe (
+                    numero_contrato, nombres, apellidos, cedula, direccion, telefono, email,
+                    pais, provincia, canton, latitud, longitud,
+                    plan_internet, sector_id, ip_asignada, mascara, gateway,
+                    imagen_domicilio, fecha_corte, fecha_inicio, fecha_fin, fecha_suspension,password_pppoe
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                generar_numero_contrato(), nombres, apellidos, cedula, direccion, telefono, email,
+                pais, provincia, canton, latitud, longitud,
+                plan_nombre, sector_id, ip_asignada, mascara, gateway,
+                imagen_domicilio, fecha_corte, fecha_inicio, fecha_fin, fecha_suspension,password_pppoe
+            ))
+            conn.commit()
+            flash(f"Contrato creado. Usuario PPPoE: {usuario_pppoe}, Password: {password_pppoe}", "success")
+        except Exception as e:
+            conn.rollback()
+            flash(f"Error guardando contrato: {e}", "danger")
+        finally:
+            conn.close()
+
+        return redirect(url_for('listar_contratos'))
+
+    except Exception as e:
+        conn.close()
+        flash(f"Error creando usuario PPPoE: {e}", "danger")
+        return redirect(url_for('crear_contrato_pppoe'))
+
+@app.route('/contratos/listar_pppoe')
+def listar_contratos():
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cur.execute("""
+            SELECT u.id, u.numero_contrato, u.nombres, u.apellidos, u.cedula,
+                   u.direccion, u.telefono, u.email, u.provincia, u.canton,
+                   u.plan_internet, u.ip_asignada, u.fecha_inicio, u.fecha_corte
+            FROM usuarios_pppoe u
+            ORDER BY u.fecha_inicio DESC
+        """)
+        contratos = cur.fetchall()
+    except Exception as e:
+        flash(f"Error obteniendo contratos: {e}", "danger")
+        contratos = []
+    finally:
+        conn.close()
+
+    return render_template('listar_contratos_pppoe.html', contratos=contratos)
+
+@app.route('/contratos/eliminar_pppoe/<int:usuario_id>', methods=['POST'])
+def eliminar_contrato_pppoe(usuario_id):
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        # 🔹 Buscar datos del usuario en la DB
+        cur.execute("SELECT numero_contrato, nombres, cedula, plan_internet FROM usuarios_pppoe WHERE id=%s", (usuario_id,))
+        usuario = cur.fetchone()
+        if not usuario:
+            flash("Usuario no encontrado", "danger")
+            return redirect(url_for('listar_contratos'))
+
+        usuario_pppoe = f"{usuario['nombres'].lower()}_{usuario['cedula']}"
+
+        # 🔹 Conectar a MikroTik
+        try:
+            pool, api = conectar_api()
+            ppp_secret = api.get_resource('/ppp/secret')
+
+            # 🔹 Eliminar usuario PPPoE en MikroTik
+            usuarios_mt = ppp_secret.get()
+            usuario_mt = next((u for u in usuarios_mt if u['name'] == usuario_pppoe), None)
+            if usuario_mt:
+                ppp_secret.remove(id=usuario_mt['id'])
+                flash(f"Usuario PPPoE '{usuario_pppoe}' eliminado en MikroTik", "success")
+            else:
+                flash(f"Usuario PPPoE '{usuario_pppoe}' no encontrado en MikroTik", "warning")
+        except Exception as e:
+            flash(f"No se pudo conectar a MikroTik: {e}", "danger")
+
+        # 🔹 Eliminar de la base de datos
+        cur.execute("DELETE FROM usuarios_pppoe WHERE id=%s", (usuario_id,))
+        conn.commit()
+        flash(f"Contrato y usuario '{usuario_pppoe}' eliminado correctamente de la DB", "success")
+
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error al eliminar contrato: {e}", "danger")
+    finally:
+        conn.close()
+
+    return redirect(url_for('listar_contratos'))
+
+
+@app.route('/pppoe_info/<int:usuario_id>')
+def pppoe_info(usuario_id):
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    try:
+        # Obtener datos básicos desde DB
+        cur.execute("""
+            SELECT nombres, cedula, plan_internet, password_pppoe 
+            FROM usuarios_pppoe 
+            WHERE id=%s
+        """, (usuario_id,))
+        usuario = cur.fetchone()
+        if not usuario:
+            return jsonify({"error": "Usuario no encontrado"}), 404
+
+        # Conectar a Mikrotik
+        pool = RouterOsApiPool(
+            host='192.168.88.1',
+            username='Francisco',
+            password='1251301881',
+            port=8728,
+            plaintext_login=True
+        )
+        api = pool.get_api()
+
+        usuario_pppoe = f"{usuario['nombres'].lower()}_{usuario['cedula']}"
+        secrets = api.get_resource('/ppp/active').get()
+        info_conectado = next((s for s in secrets if s['name'] == usuario_pppoe), None)
+
+        if info_conectado:
+            print(info_conectado)
+            ip_asignada = info_conectado.get('address', 'Sin conexión')
+            gateway = info_conectado.get('caller-id', '-')
+            mascara = '24'
+            bytes_in = int(info_conectado.get('bytes-in') or info_conectado.get('rx-byte') or 0)
+            bytes_out = int(info_conectado.get('bytes-out') or info_conectado.get('tx-byte') or 0)
+            total_bytes = bytes_in + bytes_out
+            mb_in = round(bytes_in / (1024*1024), 2)
+            mb_out = round(bytes_out / (1024*1024), 2)
+            mb_total = round(total_bytes / (1024*1024), 2)
+        else:
+            ip_asignada = 'Sin conexión'
+            gateway = '-'
+            mascara = '-'
+            mb_in = mb_out = mb_total = 0
+
+        return jsonify({
+            "usuario": usuario_pppoe,
+            "password": usuario.get('password_pppoe', 'No definido'),
+            "plan": usuario['plan_internet'],
+            "ip_asignada": ip_asignada,
+            "gateway": gateway,
+            "mascara": mascara,
+            "consumo_in_mb": mb_in,
+            "consumo_out_mb": mb_out,
+            "consumo_total_mb": mb_total
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"No se pudo conectar a Mikrotik: {str(e)}"}), 500
+    finally:
+        conn.close()
+        try:
+            pool.disconnect()
+        except:
+            pass
+
 
 @app.route('/contratos/toggle_estado/<int:id>', methods=['POST'])
 def toggle_estado(id):

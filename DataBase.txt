@@ -25,6 +25,161 @@ CREATE TABLE contratos (
 ALTER TABLE contratos ADD COLUMN estado VARCHAR(20) DEFAULT 'Activo';
 ALTER TABLE contratos ADD CONSTRAINT contrato_unico UNIQUE (numero_contrato);
 
+-- Si no existe, crea la tabla de sectores:
+CREATE TABLE IF NOT EXISTS sectores (
+    id SERIAL PRIMARY KEY,
+    nombre_sector VARCHAR(80) NOT NULL,
+    rango_ip VARCHAR(50),              -- opcional si manejas rango local
+    ultimo_ip_asignado VARCHAR(15),    -- opcional si usas rango
+    mikrotik_pool VARCHAR(80)          -- <-- nombre del POOL en RouterOS
+);
+
+-- Provincias
+CREATE TABLE IF NOT EXISTS provincias (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) UNIQUE NOT NULL
+);
+
+-- Cantones
+CREATE TABLE IF NOT EXISTS cantones (
+    id SERIAL PRIMARY KEY,
+    provincia_id INT REFERENCES provincias(id) ON DELETE CASCADE,
+    nombre VARCHAR(100) NOT NULL,
+    UNIQUE(provincia_id, nombre)
+);
+
+CREATE TABLE clientes_pppoe (
+    id SERIAL PRIMARY KEY,
+    nombre_cliente VARCHAR(100) NOT NULL,
+    usuario_pppoe VARCHAR(80) NOT NULL UNIQUE,
+    password_pppoe VARCHAR(80) NOT NULL,
+    plan_id INT NOT NULL REFERENCES planes(id),
+    sector_id INT NOT NULL REFERENCES sectores(id),
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Provincias
+INSERT INTO provincias (nombre) VALUES 
+('AZUAY'),
+('BOLÍVAR'),
+('CAÑAR'),
+('CARCHI'),
+('COTOPAXI'),
+('CHIMBORAZO'),
+('EL ORO'),
+('ESMERALDAS'),
+('GUAYAS'),
+('IMBABURA'),
+('LOJA'),
+('LOS RÍOS'),
+('MANABÍ'),
+('MORONA SANTIAGO'),
+('NAPO'),
+('PASTAZA'),
+('PICHINCHA'),
+('TUNGURAHUA'),
+('ZAMORA CHINCHIPE'),
+('GALÁPAGOS'),
+('SUCUMBÍOS'),
+('ORELLANA'),
+('SANTO DOMINGO DE LOS TSÁCHILAS'),
+('SANTA ELENA'),
+('ZONA NO DELIMITADA');
+
+-- Cantones (ejemplo con AZUAY)
+INSERT INTO cantones (provincia_id, nombre) VALUES
+((SELECT id FROM provincias WHERE nombre='AZUAY'), 'CUENCA'),
+((SELECT id FROM provincias WHERE nombre='AZUAY'), 'GIRÓN'),
+((SELECT id FROM provincias WHERE nombre='AZUAY'), 'GUALACEO'),
+((SELECT id FROM provincias WHERE nombre='AZUAY'), 'NABÓN'),
+((SELECT id FROM provincias WHERE nombre='AZUAY'), 'PAUTE'),
+((SELECT id FROM provincias WHERE nombre='AZUAY'), 'PUCARA'),
+((SELECT id FROM provincias WHERE nombre='AZUAY'), 'SAN FERNANDO'),
+((SELECT id FROM provincias WHERE nombre='AZUAY'), 'SANTA ISABEL'),
+((SELECT id FROM provincias WHERE nombre='AZUAY'), 'SIGSIG'),
+((SELECT id FROM provincias WHERE nombre='AZUAY'), 'OÑA'),
+((SELECT id FROM provincias WHERE nombre='AZUAY'), 'CHORDELEG'),
+((SELECT id FROM provincias WHERE nombre='AZUAY'), 'EL PAN'),
+((SELECT id FROM provincias WHERE nombre='AZUAY'), 'SEVILLA DE ORO'),
+((SELECT id FROM provincias WHERE nombre='AZUAY'), 'GUACHAPALA'),
+((SELECT id FROM provincias WHERE nombre='AZUAY'), 'CAMILO PONCE ENRÍQUEZ');
+
+-- Tabla de planes de internet (perfiles PPPoE)
+CREATE TABLE IF NOT EXISTS planes_internet (
+    id SERIAL PRIMARY KEY,
+    nombre_plan VARCHAR(80) NOT NULL,   -- Nombre del plan (Ej: 10Mbps/5Mbps)
+    velocidad_subida VARCHAR(20),       -- Ej: 5M
+    velocidad_bajada VARCHAR(20),       -- Ej: 10M
+    precio NUMERIC(10,2),               -- Precio mensual
+    mikrotik_profile VARCHAR(80)        -- Nombre del profile en Mikrotik
+);
+
+CREATE TABLE planes (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    velocidad_subida VARCHAR(50) NOT NULL,
+    velocidad_bajada VARCHAR(50) NOT NULL,
+    precio DECIMAL(10,2) NOT NULL
+);
+
+INSERT INTO planes (nombre, velocidad_subida, velocidad_bajada, precio) VALUES
+('Plan Basico', '2M', '10M', 15.00),
+('Plan Hogar', '5M', '20M', 25.00),
+('Plan Avanzado', '10M', '50M', 40.00),
+('Plan Full', '20M', '100M', 60.00);
+
+
+-- Tabla de sectores
+CREATE TABLE IF NOT EXISTS sectores (
+    id SERIAL PRIMARY KEY,
+    nombre_sector VARCHAR(80) NOT NULL,
+    rango_ip VARCHAR(50),              
+    ultimo_ip_asignado VARCHAR(15),    
+    mikrotik_pool VARCHAR(80)          
+);
+
+-- Tabla de usuarios PPPoE
+CREATE TABLE IF NOT EXISTS usuarios_pppoe (
+    id SERIAL PRIMARY KEY,
+    numero_contrato VARCHAR(50),
+    nombres VARCHAR(100),
+    apellidos VARCHAR(100),
+    cedula VARCHAR(20),
+    direccion VARCHAR(200),
+    telefono VARCHAR(30),
+    email VARCHAR(100),
+    pais VARCHAR(50),
+    provincia VARCHAR(50),
+    canton VARCHAR(50),
+    latitud VARCHAR(30),
+    longitud VARCHAR(30),
+    plan_internet INT REFERENCES planes_internet(id) ON DELETE SET NULL,
+    sector_id INT REFERENCES sectores(id) ON DELETE SET NULL,
+    ip_asignada VARCHAR(20),
+    mascara VARCHAR(20),
+    gateway VARCHAR(20),
+    imagen_domicilio VARCHAR(255),
+    fecha_corte DATE,
+    fecha_inicio DATE,
+    fecha_fin DATE,
+    fecha_suspension DATE
+);
+ALTER TABLE usuarios_pppoe
+ADD COLUMN sector_id INTEGER REFERENCES sectores(id);
+ALTER TABLE contratos_pppoe
+ADD COLUMN usuario_pppoe VARCHAR(100);
+ADD COLUMN password_pppoe VARCHAR(100);
+
+
+
+-- Tabla de contratos (ya tendrás una, ajusta si falta info PPPoE):
+ALTER TABLE contratos
+    ADD COLUMN IF NOT EXISTS tipo_contrato VARCHAR(20) DEFAULT 'ESTATICA', -- 'PPPoE' o 'ESTATICA'
+    ADD COLUMN IF NOT EXISTS sector_id INT REFERENCES sectores(id),
+    ADD COLUMN IF NOT EXISTS usuario_pppoe VARCHAR(80),
+    ADD COLUMN IF NOT EXISTS password_pppoe VARCHAR(80);
+
+
 
 
 CREATE TABLE pagos (

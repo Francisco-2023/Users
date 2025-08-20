@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+
+{% block title %}📄 Listar Contratos PPPoE{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4 text-primary text-center">Lista de Contratos PPPoE</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="table-responsive shadow-sm rounded">
+        <table class="table table-hover table-bordered align-middle">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th>#</th>
+                    <th>Número Contrato</th>
+                    <th>Nombre Completo</th>
+                    <th>Cédula</th>
+                    <th>Dirección</th>
+                    <th>Teléfono</th>
+                    <th>Email</th>
+                    <th>Provincia / Cantón</th>
+                    <th>Plan</th>
+                    <th>Fecha Inicio</th>
+                    <th>Fecha Corte</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="table-group-divider">
+                {% for c in contratos %}
+                <tr>
+                    <td class="text-center">{{ loop.index }}</td>
+                    <td>{{ c.numero_contrato }}</td>
+                    <td>{{ c.nombres }} {{ c.apellidos }}</td>
+                    <td>{{ c.cedula }}</td>
+                    <td>{{ c.direccion }}</td>
+                    <td>{{ c.telefono or '-' }}</td>
+                    <td>{{ c.email or '-' }}</td>
+                    <td>{{ c.provincia }} / {{ c.canton }}</td>
+                    <td>{{ c.plan_internet }}</td>
+                    <td class="text-center">{{ c.fecha_inicio }}</td>
+                    <td class="text-center">{{ c.fecha_corte }}</td>
+                    <td class="text-center">
+                        <form action="{{ url_for('eliminar_contrato_pppoe', usuario_id=c.id) }}" method="POST"
+                              style="display:inline;" onsubmit="return confirm('¿Desea eliminar este contrato?');">
+                            <button type="submit" class="btn btn-outline-danger btn-sm me-1" title="Eliminar Contrato">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                        <hr>
+                        <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#pppoeModal" data-id="{{ c.id }}" title="Ver Datos PPPoE">
+                            <i class="bi bi-key-fill"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal PPPoE Mejorado -->
+<div class="modal fade" id="pppoeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow-lg rounded-4 border-0">
+            <div class="modal-header bg-primary text-white rounded-top-4">
+                <h5 class="modal-title"><i class="bi bi-key-fill me-2"></i>Información PPPoE</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" style="max-height: 70vh; overflow-y:auto;">
+                <div class="row g-3">
+
+                    <!-- Usuario -->
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm p-2">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-person-fill text-primary fs-4 me-2"></i>
+                                <div>
+                                    <h6 class="mb-1">Usuario</h6>
+                                    <div class="d-flex align-items-center">
+                                        <span id="pppoeUsuario" class="me-2">Cargando...</span>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="copyText('pppoeUsuario')">
+                                            <i class="bi bi-clipboard"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contraseña -->
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm p-2">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-key-fill text-warning fs-4 me-2"></i>
+                                <div>
+                                    <h6 class="mb-1">Contraseña</h6>
+                                    <div class="d-flex align-items-center">
+                                        <span id="pppoePassword">Cargando...</span>
+                                        <button class="btn btn-sm btn-outline-secondary ms-2"
+                                                onclick="copyText('pppoePassword')">
+                                            <i class="bi bi-clipboard"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Plan -->
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm p-2 bg-light">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-speedometer2 text-success fs-4 me-2"></i>
+                                <div>
+                                    <h6 class="mb-1">Plan</h6>
+                                    <span id="pppoePlan">Cargando...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- IP -->
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm p-2 bg-light">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-hdd-network text-info fs-4 me-2"></i>
+                                <div>
+                                    <h6 class="mb-1">IP Asignada</h6>
+                                    <span id="pppoeIP">Cargando...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gateway -->
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm p-2 bg-light">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-diagram-3 text-secondary fs-4 me-2"></i>
+                                <div>
+                                    <h6 class="mb-1">Gateway</h6>
+                                    <span id="pppoeGateway">Cargando...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Máscara -->
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm p-2 bg-light">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-shield-lock text-dark fs-4 me-2"></i>
+                                <div>
+                                    <h6 class="mb-1">Máscara</h6>
+                                    <span id="pppoeMascara">Cargando...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Consumo -->
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm p-2 bg-light">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-bar-chart-line text-primary fs-4 me-2"></i>
+                                <div>
+                                    <h6 class="mb-1">Consumo</h6>
+                                    <span id="pppoeConsumo">Cargando...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="modal-footer justify-content-center bg-light">
+                <button type="button" class="btn btn-secondary btn-lg" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyText(id) {
+    const text = document.getElementById(id).textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Copiado al portapapeles: ' + text);
+    });
+}
+
+var pppoeModal = document.getElementById('pppoeModal');
+var refreshInterval;
+
+pppoeModal.addEventListener('show.bs.modal', function (event) {
+    var button = event.relatedTarget;
+    var usuario_id = button.getAttribute('data-id');
+
+    function fetchPPPoEInfo() {
+        document.querySelectorAll('#pppoeModal span').forEach(el => el.textContent = 'Cargando...');
+        fetch(`/pppoe_info/${usuario_id}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('pppoeUsuario').textContent = 'Error';
+                    document.getElementById('pppoePassword').textContent = data.error;
+                    document.getElementById('pppoePlan').textContent = '-';
+                    document.getElementById('pppoeIP').textContent = '-';
+                    document.getElementById('pppoeGateway').textContent = '-';
+                    document.getElementById('pppoeMascara').textContent = '-';
+                    document.getElementById('pppoeConsumo').textContent = '-';
+                    return;
+                }
+
+                document.getElementById('pppoeUsuario').textContent = data.usuario;
+                document.getElementById('pppoePassword').textContent = data.password;
+                document.getElementById('pppoePlan').textContent = data.plan;
+                document.getElementById('pppoeIP').textContent = data.ip_asignada;
+                document.getElementById('pppoeGateway').textContent = data.gateway;
+                document.getElementById('pppoeMascara').textContent = data.mascara;
+                document.getElementById('pppoeConsumo').textContent = 
+                    `↑ ${data.consumo_out_mb} MB | ↓ ${data.consumo_in_mb} MB | Total: ${data.consumo_total_mb} MB`;
+            })
+            .catch(err => {
+                document.getElementById('pppoeUsuario').textContent = 'Error';
+                document.getElementById('pppoePassword').textContent = err;
+                document.getElementById('pppoePlan').textContent = '-';
+                document.getElementById('pppoeIP').textContent = '-';
+                document.getElementById('pppoeGateway').textContent = '-';
+                document.getElementById('pppoeMascara').textContent = '-';
+                document.getElementById('pppoeConsumo').textContent = '-';
+            });
+    }
+
+    fetchPPPoEInfo();
+    refreshInterval = setInterval(fetchPPPoEInfo, 15000);
+});
+
+pppoeModal.addEventListener('hide.bs.modal', function () {
+    clearInterval(refreshInterval);
+});
+</script>
+
+{% endblock %}

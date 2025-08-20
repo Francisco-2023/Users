@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% block title %}Nuevo Contrato PPPoE{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="text-primary mb-4">📄 Crear Contrato PPPoE</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    {% if resultado %}
+    <div class="alert alert-success border-start border-4 border-success shadow-sm">
+        <h5>✅ Contrato generado con éxito:</h5>
+        <p><strong>Usuario PPPoE:</strong> {{ resultado.usuario }}</p>
+        <p><strong>Contraseña:</strong> {{ resultado.password }}</p>
+        {% if resultado.ip_asignada %}
+        <p><strong>IP Asignada:</strong> {{ resultado.ip_asignada }}</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+        <!-- Datos Personales -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-person-fill"></i> Datos Personales
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6 form-floating">
+                        <input type="text" name="nombres" class="form-control" id="nombres" placeholder="Nombres" required>
+                        <label for="nombres">Nombres</label>
+                    </div>
+                    <div class="col-md-6 form-floating">
+                        <input type="text" name="apellidos" class="form-control" id="apellidos" placeholder="Apellidos" required>
+                        <label for="apellidos">Apellidos</label>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-2">
+                    <div class="col-md-6 form-floating">
+                        <input type="text" name="cedula" class="form-control" id="cedula" placeholder="Cédula" required>
+                        <label for="cedula">Cédula</label>
+                    </div>
+                    <div class="col-md-6 form-floating">
+                        <input type="text" name="direccion" class="form-control" id="direccion" placeholder="Dirección" required>
+                        <label for="direccion">Dirección</label>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-2">
+                    <div class="col-md-6 form-floating">
+                        <input type="text" name="telefono" class="form-control" id="telefono" placeholder="Teléfono">
+                        <label for="telefono">Teléfono</label>
+                    </div>
+                    <div class="col-md-6 form-floating">
+                        <input type="email" name="email" class="form-control" id="email" placeholder="Email">
+                        <label for="email">Email</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ubicación -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-info text-white">
+                <i class="bi bi-geo-alt-fill"></i> Ubicación
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6 form-floating">
+                        <select name="provincia" id="provincia" class="form-select" required>
+                            <option value="">-- Seleccione --</option>
+                            {% for prov, cantones in provincias.items() %}
+                            <option value="{{ prov }}">{{ prov }}</option>
+                            {% endfor %}
+                        </select>
+                        <label for="provincia">Provincia</label>
+                    </div>
+                    <div class="col-md-6 form-floating">
+                        <select name="canton" id="canton" class="form-select" required>
+                            <option value="">-- Seleccione --</option>
+                        </select>
+                        <label for="canton">Cantón</label>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-2">
+                    <div class="col-md-6 form-floating">
+                        <input type="text" name="pais" class="form-control" id="pais" value="Ecuador" placeholder="País">
+                        <label for="pais">País</label>
+                    </div>
+                    <div class="col-md-3 form-floating">
+                        <input type="text" name="latitud" class="form-control" id="latitud" placeholder="Latitud">
+                        <label for="latitud">Latitud</label>
+                    </div>
+                    <div class="col-md-3 form-floating">
+                        <input type="text" name="longitud" class="form-control" id="longitud" placeholder="Longitud">
+                        <label for="longitud">Longitud</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PPPoE y Plan -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-warning text-dark">
+                <i class="bi bi-wifi"></i> Datos PPPoE
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4 form-floating">
+                        <select name="sector_id" class="form-select" required>
+                            <option value="">-- Seleccione Sector --</option>
+                            {% for s in sectores %}
+                            <option value="{{ s.id }}">{{ s.nombre_sector }}</option>
+                            {% endfor %}
+                        </select>
+                        <label>Sector</label>
+                    </div>
+                    <div class="col-md-4 form-floating">
+                        <select name="plan_id" class="form-select" required>
+                            <option value="">-- Seleccione Plan --</option>
+                            {% for p in planes %}
+                            <option value="{{ p.id }}">{{ p.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                        <label>Plan PPPoE</label>
+                    </div>
+                    <div class="col-md-4 form-floating">
+                        <select name="perfil_pppoe" class="form-select" required>
+                            <option value="">-- Seleccione Perfil --</option>
+                            {% for p in perfiles %}
+                            <option value="{{ p }}">{{ p }}</option>
+                            {% endfor %}
+                        </select>
+                        <label>Perfil PPPoE</label>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-2">
+                    <div class="col-md-6 form-floating">
+                        <input type="date" name="fecha_corte" class="form-control" id="fecha_corte" required>
+                        <label for="fecha_corte">Fecha de corte</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Imagen Domicilio -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <i class="bi bi-image"></i> Imagen del Domicilio
+            </div>
+            <div class="card-body">
+                <input type="file" name="imagen_domicilio" class="form-control" id="imagen_domicilio">
+                <div id="previewImagen" class="mt-2"></div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mb-4">
+            <button class="btn btn-success flex-grow-1"><i class="bi bi-save-fill"></i> Guardar Contrato</button>
+            <a href="/contratos" class="btn btn-secondary flex-grow-1"><i class="bi bi-x-circle-fill"></i> Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Provincias y cantones
+    const provincias = {{ provincias|tojson }};
+    const provinciaSelect = document.getElementById('provincia');
+    const cantonSelect = document.getElementById('canton');
+
+    provinciaSelect.addEventListener('change', function () {
+        const cantones = provincias[this.value] || [];
+        cantonSelect.innerHTML = '<option value="">-- Seleccione --</option>';
+        cantones.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = c;
+            cantonSelect.appendChild(opt);
+        });
+    });
+
+    // Preview de imagen
+    const inputImagen = document.getElementById('imagen_domicilio');
+    const previewDiv = document.getElementById('previewImagen');
+
+    inputImagen.addEventListener('change', function () {
+        previewDiv.innerHTML = '';
+        const file = this.files[0];
+        if (file) {
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            img.classList.add('img-fluid', 'rounded', 'shadow-sm');
+            img.style.maxHeight = '200px';
+            previewDiv.appendChild(img);
+        }
+    });
+
+    // Validación Bootstrap
+    (() => {
+        'use strict';
+        const forms = document.querySelectorAll('.needs-validation')
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })();
+</script>
+{% endblock %}
