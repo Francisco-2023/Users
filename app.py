@@ -3882,5 +3882,6 @@ def subir_comprobante(id):
     flash('Comprobante subido correctamente y factura marcada como pagada.', 'success')
     return redirect(url_for('ver_facturas'))
 
+
 if __name__ == '__main__':
     app.run(debug=True)

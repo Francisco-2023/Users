@@ -61,4 +61,3 @@ add disabled=no interface=bridge1 service-name=service1
 add disabled=no interface=ether1 one-session-per-host=yes service-name=PPPoE-ISP
 add authentication=pap,chap disabled=no interface=bridge1 service-name=pppoe-server1
 
-/ppp profile set [find name="Plan Hogar"] track-bytes=yes
